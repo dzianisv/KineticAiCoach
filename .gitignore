@@ -16,3 +16,8 @@
 local.properties
 .env
 debug.keystore
+
+# Firebase provisioning (local secrets/handoff — do not commit)
+.firebase-provision.local
+app/google-services.json
+.scratch/

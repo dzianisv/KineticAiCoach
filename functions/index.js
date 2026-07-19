@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { GoogleGenAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 const { OAuth2Client } = require("google-auth-library");
 
 // Initialize Firebase Admin SDK
@@ -25,7 +25,7 @@ const oauth2Client = new OAuth2Client();
  *   "systemPrompt": "System instruction here (optional)..."
  * }
  */
-exports.geminiProxy = functions.https.onRequest(async (req, res) => {
+exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.onRequest(async (req, res) => {
   // 1. Enable CORS for mobile clients
   res.set("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
@@ -51,24 +51,10 @@ exports.geminiProxy = functions.https.onRequest(async (req, res) => {
   const token = authHeader.split("Bearer ")[1];
   let authenticatedUser = null;
 
-  // 3. Authenticate user: Check Google standard ID Token or Firebase Auth ID Token
+  // 3. Authenticate user: Firebase Auth ID token first (primary path for the Android app),
+  //    falling back to standard Google Sign-In ID token verification.
   try {
-    // Attempt verification as a standard Google Account ID token
     try {
-      const ticket = await oauth2Client.verifyIdToken({
-        idToken: token
-      });
-      const payload = ticket.getPayload();
-      authenticatedUser = {
-        uid: payload.sub,
-        email: payload.email,
-        name: payload.name,
-        provider: "google"
-      };
-      console.log(`Successfully verified Google standard token for: ${authenticatedUser.email}`);
-    } catch (googleError) {
-      // If standard Google verification fails, fall back to Firebase Auth verification
-      console.log("Not a standard Google ID token, trying Firebase Auth token verification...");
       const decodedToken = await admin.auth().verifyIdToken(token);
       authenticatedUser = {
         uid: decodedToken.uid,
@@ -77,6 +63,22 @@ exports.geminiProxy = functions.https.onRequest(async (req, res) => {
         provider: "firebase"
       };
       console.log(`Successfully verified Firebase ID token for: ${authenticatedUser.email}`);
+    } catch (firebaseError) {
+      // If Firebase Admin verification fails, fall back to standard Google ID token verification
+      console.log("Not a Firebase ID token, trying standard Google ID token verification...");
+      const verifyOptions = { idToken: token };
+      if (process.env.GOOGLE_WEB_CLIENT_ID) {
+        verifyOptions.audience = process.env.GOOGLE_WEB_CLIENT_ID;
+      }
+      const ticket = await oauth2Client.verifyIdToken(verifyOptions);
+      const payload = ticket.getPayload();
+      authenticatedUser = {
+        uid: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        provider: "google"
+      };
+      console.log(`Successfully verified Google standard token for: ${authenticatedUser.email}`);
     }
   } catch (authError) {
     console.error("Authentication failed:", authError);
@@ -86,9 +88,8 @@ exports.geminiProxy = functions.https.onRequest(async (req, res) => {
     });
   }
 
-  // 4. Retrieve Gemini API Key securely
-  // In production, configure this via: firebase functions:secrets:set GEMINI_API_KEY="your-key"
-  const geminiApiKey = process.env.GEMINI_API_KEY || functions.config().gemini?.key;
+  // 4. Retrieve Gemini API Key securely (bound via Firebase Secret Manager, see runWith above)
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   if (!geminiApiKey) {
     console.error("GEMINI_API_KEY is not configured in Firebase Cloud Functions env or config.");
     return res.status(500).json({
@@ -110,9 +111,9 @@ exports.geminiProxy = functions.https.onRequest(async (req, res) => {
   try {
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
     
-    // Using gemini-2.5-flash or gemini-1.5-flash as the fast, efficient model
+    // Using gemini-2.5-flash as the fast, efficient model
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: systemPrompt ? {
         systemInstruction: systemPrompt
@@ -124,7 +125,7 @@ exports.geminiProxy = functions.https.onRequest(async (req, res) => {
     // Return response with audited logging metadata
     return res.status(200).json({
       text: responseText,
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       user: {
         email: authenticatedUser.email,
         provider: authenticatedUser.provider

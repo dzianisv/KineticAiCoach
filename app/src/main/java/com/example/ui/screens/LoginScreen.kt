@@ -183,52 +183,6 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 2. Apple Sign-In Button
-                    Button(
-                        onClick = {
-                            authError = null
-                            isLoading = true
-                            coroutineScope.launch {
-                                delay(1200)
-                                isLoading = false
-                                // Successfully authenticated via Apple Credential Provider
-                                onLoginSuccess("Apple Athlete", "athlete@apple.com")
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp)
-                            .border(1.dp, Color(0xFF27272A), RoundedCornerShape(12.dp))
-                            .testTag("apple_signin_button"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF18181B),
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            // Stylized monochrome Apple logo representation
-                            Text(
-                                "",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Sign in with Apple",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-
                     authError?.let { error ->
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
