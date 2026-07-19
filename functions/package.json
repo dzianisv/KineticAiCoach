@@ -1,0 +1,22 @@
+{
+  "name": "functions",
+  "description": "Firebase Cloud Functions for Google Auth Authenticated Gemini Proxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "firebase-admin": "^11.8.0",
+    "firebase-functions": "^4.3.1",
+    "google-auth-library": "^8.8.0"
+  },
+  "private": true
+}

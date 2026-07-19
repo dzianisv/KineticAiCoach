@@ -1,0 +1,6 @@
+{
+  "name": "AI Coach",
+  "description": "An AI-powered personal coach app with real-time pose analysis, customized workout plans, and voice encouragement.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
