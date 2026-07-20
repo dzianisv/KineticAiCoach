@@ -87,6 +87,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
+import com.example.ui.theme.ObsidianBlack
+import com.example.ui.theme.PremiumGrayBorder
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 import com.example.network.RetrofitClient
 import com.example.vision.PoseSkeleton
 import kotlinx.coroutines.Dispatchers
@@ -317,7 +321,7 @@ fun PoseTrackerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF020617))
+            .background(ObsidianBlack)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -335,7 +339,7 @@ fun PoseTrackerScreen(
         } else if (hasCameraPermission) {
             // Live camera now shown in the small self-view PiP (top-right); keep a
             // dark analysis backdrop here so the HUD reads clearly.
-            Box(modifier = Modifier.fillMaxSize().background(Color(0xFF020617)))
+            Box(modifier = Modifier.fillMaxSize().background(ObsidianBlack))
         } else {
             // Placeholder animator shown only when the camera permission is denied.
             Box(
@@ -357,7 +361,7 @@ fun PoseTrackerScreen(
             val height = size.height
 
             // Scanner crosshairs
-            val strokeColor = Color(0xFF38BDF8).copy(alpha = 0.4f)
+            val strokeColor = Color.White.copy(alpha = 0.4f)
             val cornerLength = 40f
             val padding = 60f
 
@@ -382,7 +386,7 @@ fun PoseTrackerScreen(
                 val scanY = padding + (height - 2 * padding - 240.dp.toPx()) * laserY
                 drawLine(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(Color.Transparent, Color(0xFF00F5FF).copy(alpha = 0.8f), Color.Transparent)
+                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.8f), Color.Transparent)
                     ),
                     start = Offset(padding, scanY),
                     end = Offset(width - padding, scanY),
@@ -414,7 +418,7 @@ fun PoseTrackerScreen(
                     .size(width = 104.dp, height = 150.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.Black)
-                    .border(2.dp, Color(0xFF38BDF8), RoundedCornerShape(14.dp))
+                    .border(2.dp, Color.White, RoundedCornerShape(14.dp))
             ) {
                 key(cameraLens) {
                     AndroidView(
@@ -490,7 +494,7 @@ fun PoseTrackerScreen(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(4.dp)
-                        .background(Color(0xAAEF4444), RoundedCornerShape(4.dp))
+                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 )
                 IconButton(
@@ -502,13 +506,13 @@ fun PoseTrackerScreen(
                         .align(Alignment.BottomEnd)
                         .padding(4.dp)
                         .size(34.dp)
-                        .background(Color(0xCC0F172A), CircleShape)
+                        .background(PremiumGrayDark.copy(alpha = 0.8f), CircleShape)
                         .testTag("flip_camera_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Cameraswitch,
                         contentDescription = "Switch front/back camera",
-                        tint = Color(0xFF38BDF8),
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -521,7 +525,7 @@ fun PoseTrackerScreen(
                 .fillMaxWidth()
                 .padding(top = 16.dp, start = 72.dp, end = 16.dp)
                 .align(Alignment.TopCenter),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.85f)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark.copy(alpha = 0.85f)),
             shape = RoundedCornerShape(12.dp)
         ) {
             Row(
@@ -532,7 +536,7 @@ fun PoseTrackerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("WORKOUT TIME", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text("WORKOUT TIME", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60),
                         fontSize = 18.sp,
@@ -542,31 +546,31 @@ fun PoseTrackerScreen(
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("REPS", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text("REPS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = "$repCount",
                         fontSize = 20.sp,
-                        color = Color(0xFF22C55E),
+                        color = Color.White,
                         fontWeight = FontWeight.Black
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("SETS", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text("SETS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = "$setCount",
                         fontSize = 20.sp,
-                        color = Color(0xFF38BDF8),
+                        color = Color.White,
                         fontWeight = FontWeight.Black
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("FORM SCORE", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text("FORM SCORE", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = String.format("%.0f%%", averageFormScore),
                         fontSize = 18.sp,
-                        color = if (averageFormScore >= 90.0) Color(0xFF10B981) else Color(0xFFF59E0B),
+                        color = Color.White,
                         fontWeight = FontWeight.Black
                     )
                 }
@@ -580,7 +584,7 @@ fun PoseTrackerScreen(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0xFF020617).copy(alpha = 0.95f), Color(0xFF020617))
+                        colors = listOf(Color.Transparent, ObsidianBlack.copy(alpha = 0.95f), ObsidianBlack)
                     )
                 )
                 .padding(24.dp)
@@ -588,9 +592,9 @@ fun PoseTrackerScreen(
             // Mode selectors and current feedback message
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B).copy(alpha = 0.9f)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark.copy(alpha = 0.9f)),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF334155))
+                border = BorderStroke(1.dp, PremiumGrayBorder)
             ) {
                 Row(
                     modifier = Modifier
@@ -601,7 +605,8 @@ fun PoseTrackerScreen(
                     Icon(
                         imageVector = if (isFormWarning) Icons.Default.Info else Icons.Default.Mic,
                         contentDescription = "Critique Icon",
-                        tint = if (isFormWarning) Color(0xFFEF4444) else Color(0xFF38BDF8),
+                        // Red is the PRD-mandated form-critique color tied to the pose warning state.
+                        tint = if (isFormWarning) Color(0xFFEF4444) else Color.White,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
@@ -627,14 +632,14 @@ fun PoseTrackerScreen(
                     Icon(
                         imageVector = if (hasCameraPermission || demoMode) Icons.Default.Videocam else Icons.Default.CameraAlt,
                         contentDescription = "Camera",
-                        tint = if (hasCameraPermission || demoMode) Color(0xFF10B981) else Color(0xFF94A3B8),
+                        tint = if (hasCameraPermission || demoMode) Color.White else PremiumGrayMedium,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = if (demoMode) "Demo Feed • Live AI" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
                         fontSize = 12.sp,
-                        color = Color(0xFF94A3B8)
+                        color = PremiumGrayMedium
                     )
                 }
 
@@ -642,14 +647,14 @@ fun PoseTrackerScreen(
                     Text(
                         text = if (isAnalyzing) "AI analyzing…" else "Gemini Live Coach",
                         fontSize = 12.sp,
-                        color = if (isAnalyzing) Color(0xFF38BDF8) else Color(0xFF10B981),
+                        color = if (isAnalyzing) Color.White else PremiumGrayMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.Videocam,
                         contentDescription = "Live analysis",
-                        tint = if (isAnalyzing) Color(0xFF38BDF8) else Color(0xFF10B981),
+                        tint = if (isAnalyzing) Color.White else PremiumGrayMedium,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -669,12 +674,12 @@ fun PoseTrackerScreen(
                             .weight(1f)
                             .height(56.dp)
                             .testTag("start_workout_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Start Workout Session", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Start Workout Session", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
                 } else {
                     Button(
@@ -696,10 +701,10 @@ fun PoseTrackerScreen(
                             .weight(1f)
                             .height(56.dp)
                             .testTag("finish_workout_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumGrayBorder),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = "Stop")
+                        Icon(Icons.Default.Stop, contentDescription = "Stop", tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Finish & Save Progress", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }

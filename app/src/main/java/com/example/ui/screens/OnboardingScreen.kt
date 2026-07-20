@@ -53,6 +53,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.MainViewModel
+import com.example.ui.theme.PremiumGrayBorder
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -124,7 +127,7 @@ fun OnboardingScreen(
             Text(
                 text = "Enter your body stats and goals. Coach Iron will customize your training programs & schedules.",
                 fontSize = 14.sp,
-                color = Color(0xFF94A3B8),
+                color = PremiumGrayMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
@@ -135,7 +138,7 @@ fun OnboardingScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("What should Coach call you?", color = Color(0xFF71717A)) },
+                label = { Text("What should Coach call you?", color = PremiumGrayMedium) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("name_input"),
@@ -143,9 +146,9 @@ fun OnboardingScreen(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
                     focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color(0xFF27272A),
-                    focusedContainerColor = Color(0xFF18181B),
-                    unfocusedContainerColor = Color(0xFF18181B)
+                    unfocusedBorderColor = PremiumGrayBorder,
+                    focusedContainerColor = PremiumGrayDark,
+                    unfocusedContainerColor = PremiumGrayDark
                 ),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
@@ -158,7 +161,7 @@ fun OnboardingScreen(
                 OutlinedTextField(
                     value = heightStr,
                     onValueChange = { heightStr = it },
-                    label = { Text("Height (cm)", color = Color(0xFF71717A)) },
+                    label = { Text("Height (cm)", color = PremiumGrayMedium) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier
                         .weight(1f)
@@ -167,9 +170,9 @@ fun OnboardingScreen(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color(0xFF27272A),
-                        focusedContainerColor = Color(0xFF18181B),
-                        unfocusedContainerColor = Color(0xFF18181B)
+                        unfocusedBorderColor = PremiumGrayBorder,
+                        focusedContainerColor = PremiumGrayDark,
+                        unfocusedContainerColor = PremiumGrayDark
                     ),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -178,7 +181,7 @@ fun OnboardingScreen(
                 OutlinedTextField(
                     value = weightStr,
                     onValueChange = { weightStr = it },
-                    label = { Text("Weight (kg)", color = Color(0xFF71717A)) },
+                    label = { Text("Weight (kg)", color = PremiumGrayMedium) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier
                         .weight(1f)
@@ -187,9 +190,9 @@ fun OnboardingScreen(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color(0xFF27272A),
-                        focusedContainerColor = Color(0xFF18181B),
-                        unfocusedContainerColor = Color(0xFF18181B)
+                        unfocusedBorderColor = PremiumGrayBorder,
+                        focusedContainerColor = PremiumGrayDark,
+                        unfocusedContainerColor = PremiumGrayDark
                     ),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -224,11 +227,11 @@ fun OnboardingScreen(
                             .testTag("goal_chip_$goal")
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) Color.White else Color(0xFF27272A),
+                                color = if (isSelected) Color.White else PremiumGrayBorder,
                                 shape = RoundedCornerShape(10.dp)
                             ),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) Color.White else Color(0xFF18181B)
+                            containerColor = if (isSelected) Color.White else PremiumGrayDark
                         ),
                         shape = RoundedCornerShape(10.dp)
                     ) {
@@ -243,7 +246,7 @@ fun OnboardingScreen(
                             Text(
                                 goal,
                                 fontSize = 13.sp,
-                                color = if (isSelected) Color.Black else Color(0xFFA1A1AA),
+                                color = if (isSelected) Color.Black else PremiumGrayMedium,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -267,7 +270,7 @@ fun OnboardingScreen(
             Text(
                 text = "How many days per week can you train?",
                 fontSize = 12.sp,
-                color = Color(0xFF94A3B8),
+                color = PremiumGrayMedium,
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.Start)
@@ -290,7 +293,7 @@ fun OnboardingScreen(
                     colors = SliderDefaults.colors(
                         thumbColor = Color.White,
                         activeTrackColor = Color.White,
-                        inactiveTrackColor = Color(0xFF27272A)
+                        inactiveTrackColor = PremiumGrayBorder
                     )
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -331,14 +334,14 @@ fun OnboardingScreen(
                     .testTag("onboarding_submit_button")
                     .border(
                         width = 1.dp,
-                        color = if (name.isNotBlank()) Color.White else Color(0xFF27272A),
+                        color = if (name.isNotBlank()) Color.White else PremiumGrayBorder,
                         shape = RoundedCornerShape(12.dp)
                     ),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black,
-                    disabledContainerColor = Color(0xFF18181B),
-                    disabledContentColor = Color(0xFF71717A)
+                    disabledContainerColor = PremiumGrayDark,
+                    disabledContentColor = PremiumGrayMedium
                 ),
                 shape = RoundedCornerShape(12.dp),
                 enabled = name.isNotBlank()

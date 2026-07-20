@@ -33,6 +33,8 @@ import androidx.credentials.exceptions.GetCredentialException
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.ui.MainViewModel
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 import com.google.android.gms.tasks.Tasks
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -65,7 +67,7 @@ fun LoginScreen(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF1C1C1E),
+                            PremiumGrayDark,
                             Color.Black
                         )
                     )
@@ -119,7 +121,7 @@ fun LoginScreen(
                 Text(
                     text = "Professional AI Biometrics & Real-time Pose Correction",
                     fontSize = 13.sp,
-                    color = Color(0xFFA1A1AA),
+                    color = PremiumGrayMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -142,14 +144,14 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Securing authentications...",
-                        color = Color(0xFFA1A1AA),
+                        color = PremiumGrayMedium,
                         fontSize = 13.sp
                     )
                 } else {
                     Text(
                         text = "Sign in to securely sync your body stats, weekly programs, and leaderboard points.",
                         fontSize = 12.sp,
-                        color = Color(0xFF71717A),
+                        color = PremiumGrayMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                     )
@@ -256,7 +258,7 @@ fun LoginScreen(
                             .testTag("guest_signin_button"),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.Transparent,
-                            contentColor = Color(0xFFA1A1AA)
+                            contentColor = PremiumGrayMedium
                         ),
                         border = null,
                         shape = RoundedCornerShape(12.dp)
@@ -272,7 +274,7 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = error,
-                            color = Color(0xFFEF4444),
+                            color = Color.White,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center
                         )

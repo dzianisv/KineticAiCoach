@@ -44,6 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.ChatMessage
 import com.example.ui.MainViewModel
+import com.example.ui.theme.PremiumGrayBorder
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 
 @Composable
 fun OnboardingChatScreen(
@@ -88,7 +91,7 @@ fun OnboardingChatScreen(
                 ) {
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isCoach) Color(0xFF1E293B) else Color(0xFF2563EB)
+                            containerColor = if (isCoach) PremiumGrayDark else PremiumGrayBorder
                         ),
                         shape = RoundedCornerShape(
                             topStart = 16.dp,
@@ -118,7 +121,7 @@ fun OnboardingChatScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = Color(0xFF38BDF8),
+                            color = Color.White,
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp
                         )
@@ -126,7 +129,7 @@ fun OnboardingChatScreen(
                         Text(
                             text = "Coach is building your program...",
                             fontSize = 12.sp,
-                            color = Color(0xFF64748B)
+                            color = PremiumGrayMedium
                         )
                     }
                 }
@@ -143,16 +146,16 @@ fun OnboardingChatScreen(
                 Text(
                     text = "Program ready! Let's start training.",
                     fontSize = 14.sp,
-                    color = Color(0xFF94A3B8),
+                    color = PremiumGrayMedium,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Button(
                     onClick = onOnboardingComplete,
                     modifier = Modifier.testTag("onboarding_done"),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
-                    Text("Let's Go", color = Color.White)
+                    Text("Let's Go", color = Color.Black)
                 }
             }
         }
@@ -166,17 +169,17 @@ fun OnboardingChatScreen(
             OutlinedTextField(
                 value = inputText,
                 onValueChange = { inputText = it },
-                placeholder = { Text("Type your reply...", color = Color(0xFF64748B)) },
+                placeholder = { Text("Type your reply...", color = PremiumGrayMedium) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("onboarding_input"),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color(0xFF2563EB),
-                    unfocusedBorderColor = Color(0xFF334155),
-                    focusedContainerColor = Color(0xFF0F172A),
-                    unfocusedContainerColor = Color(0xFF0F172A),
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = PremiumGrayBorder,
+                    focusedContainerColor = PremiumGrayDark,
+                    unfocusedContainerColor = PremiumGrayDark,
                     cursorColor = Color.White
                 ),
                 singleLine = true,
@@ -196,12 +199,12 @@ fun OnboardingChatScreen(
                 modifier = Modifier
                     .size(48.dp)
                     .testTag("onboarding_send"),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF2563EB))
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White)
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
                     contentDescription = "Send",
-                    tint = Color.White,
+                    tint = Color.Black,
                     modifier = Modifier.size(20.dp)
                 )
             }

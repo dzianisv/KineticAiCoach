@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 import kotlin.math.sin
 
 /**
@@ -70,7 +72,7 @@ fun WorkoutAnimator(
     // Sleek dark tech background
     Box(
         modifier = modifier
-            .background(Color(0xFF0F172A), shape = RoundedCornerShape(16.dp))
+            .background(PremiumGrayDark, shape = RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -79,9 +81,10 @@ fun WorkoutAnimator(
             val centerX = width / 2
             val centerY = height / 2
 
-            // Custom joint colors (glowing cyan / neon green vs alert warning red)
-            val boneColor = if (isWarningMode) Color(0xFFEF4444) else Color(0xFF10B981)
-            val jointColor = Color(0xFF38BDF8)
+            // Monochrome joints; the only intentional color is the PRD-mandated red
+            // form-critique warning tied to the pose (see PoseTrackerScreen isWarningMode).
+            val boneColor = if (isWarningMode) Color(0xFFEF4444) else Color.White
+            val jointColor = Color.White
             val strokeWidth = 8f
 
             // Map animationProgress (0..1) to a smooth sin wave (0..1..0) for a natural up/down motion
@@ -127,7 +130,7 @@ fun WorkoutAnimator(
                     // Draw Grid lines background for high-tech holographic look
                     for (i in 1..4) {
                         val gridY = (height / 5) * i
-                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                        drawLine(PremiumGrayMedium.copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
                     }
 
                     // Draw Head
@@ -198,11 +201,11 @@ fun WorkoutAnimator(
                     // Grid lines
                     for (i in 1..4) {
                         val gridY = (height / 5) * i
-                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                        drawLine(PremiumGrayMedium.copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
                     }
 
                     // Draw Floor
-                    drawLine(Color(0xFF475569), Offset(0f, handY + 10f), Offset(width, handY + 10f), 4f)
+                    drawLine(PremiumGrayMedium, Offset(0f, handY + 10f), Offset(width, handY + 10f), 4f)
 
                     // Head
                     drawCircle(jointColor, radius = 23f, center = head, style = Stroke(width = 4f))
@@ -252,11 +255,11 @@ fun WorkoutAnimator(
                     // Grid lines
                     for (i in 1..4) {
                         val gridY = (height / 5) * i
-                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                        drawLine(PremiumGrayMedium.copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
                     }
 
                     // Floor
-                    drawLine(Color(0xFF475569), Offset(0f, pivotY + 10f), Offset(width, pivotY + 10f), 4f)
+                    drawLine(PremiumGrayMedium, Offset(0f, pivotY + 10f), Offset(width, pivotY + 10f), 4f)
 
                     // Head
                     drawCircle(jointColor, radius = 23f, center = head, style = Stroke(width = 4f))
@@ -307,7 +310,7 @@ fun WorkoutAnimator(
                     // Grid lines
                     for (i in 1..4) {
                         val gridY = (height / 5) * i
-                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                        drawLine(PremiumGrayMedium.copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
                     }
 
                     // Head
@@ -377,7 +380,7 @@ fun WorkoutAnimator(
                     // Grid lines
                     for (i in 1..4) {
                         val gridY = (height / 5) * i
-                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                        drawLine(PremiumGrayMedium.copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
                     }
 
                     // Head
