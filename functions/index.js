@@ -91,12 +91,18 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
   // 4. Select GenAI backend based on environment configuration
   const useVertexBackend = process.env.GENAI_BACKEND === "vertex" || !process.env.GEMINI_API_KEY;
 
-  // 5. Parse Prompt and System Instructions from the Request Body
-  const { prompt, systemPrompt } = req.body;
+  // 5. Parse Prompt, System Instructions and optional image from the Request Body
+  const { prompt, systemPrompt, imageBase64, mimeType, responseMimeType } = req.body;
   if (!prompt || typeof prompt !== "string") {
     return res.status(400).json({
       error: "Bad Request",
       message: "Missing 'prompt' string parameter in request body."
+    });
+  }
+  if (imageBase64 && typeof imageBase64 !== "string") {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "'imageBase64' must be a base64-encoded string when provided."
     });
   }
 
@@ -107,14 +113,26 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
       project: process.env.GCLOUD_PROJECT || "kinetic-ai-coach-50627",
       location: process.env.VERTEX_LOCATION || "us-central1"
     }) : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
-    // Using gemini-2.5-flash as the fast, efficient model
+
+    // Build contents: multimodal (image + text) when an image is supplied,
+    // otherwise a plain text prompt. Used by the live workout form analyzer.
+    const contents = imageBase64 ? [{
+      role: "user",
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType: mimeType || "image/jpeg", data: imageBase64 } }
+      ]
+    }] : prompt;
+
+    const generationConfig = {};
+    if (systemPrompt) generationConfig.systemInstruction = systemPrompt;
+    if (responseMimeType) generationConfig.responseMimeType = responseMimeType;
+
+    // Using gemini-2.5-flash as the fast, efficient multimodal model
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: prompt,
-      config: systemPrompt ? {
-        systemInstruction: systemPrompt
-      } : undefined
+      contents,
+      config: Object.keys(generationConfig).length ? generationConfig : undefined
     });
 
     const responseText = response.text || "No response generated.";

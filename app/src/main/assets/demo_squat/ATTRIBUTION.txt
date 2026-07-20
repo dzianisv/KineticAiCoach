@@ -1,0 +1,17 @@
+Demo squat keyframes (frame_00.jpg .. frame_42.jpg)
+
+These frames are extracted from:
+  "Squat - exercise demonstration video.webm"
+  Author: FitnessScape
+  Source: Wikimedia Commons
+  https://commons.wikimedia.org/wiki/File:Squat_-_exercise_demonstration_video.webm
+  License: Creative Commons Attribution 3.0 (CC BY 3.0)
+  https://creativecommons.org/licenses/by/3.0
+
+Usage in this app:
+  Bundled sample footage used ONLY by the optional live-analysis "demo feed",
+  which is gated behind the presence of a `demo_feed` flag file in the app's
+  external files dir. In normal/production use the flag is absent and the live
+  device camera is used instead. The demo feed exists so the real Gemini
+  form-analysis pipeline can be exercised on emulators / CI where no physical
+  camera or exerciser is available.
