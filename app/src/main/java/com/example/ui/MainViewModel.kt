@@ -73,12 +73,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         // Initialize Database and Seeding
         viewModelScope.launch {
             repository.checkAndSeedDatabase()
+            loadPersistedChatMessages()
         }
         // Initialize TTS
         try {
             tts = TextToSpeech(application, this)
         } catch (e: Exception) {
             Log.e("MainViewModel", "TTS Init failed", e)
+        }
+    }
+
+    // Loads persisted chat history from Room into the in-memory chat state.
+    // If nothing has been persisted yet (first run), the seeded welcome message
+    // above is left alone so it isn't duplicated.
+    private suspend fun loadPersistedChatMessages() {
+        val persisted = repository.getChatMessages()
+        if (persisted.isNotEmpty()) {
+            _chatMessages.value = persisted.map { ChatMessage(it.role, it.content, it.timestamp) }
+        }
+    }
+
+    // Appends a chat message to the in-memory state immediately, and persists it
+    // to Room (and best-effort to Firestore) in the background.
+    private fun addAndPersistChatMessage(sender: String, text: String) {
+        _chatMessages.value = _chatMessages.value + ChatMessage(sender, text)
+        viewModelScope.launch {
+            repository.addChatMessage(sender, text)
         }
     }
 
@@ -110,6 +130,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             // onSignedIn handles blank uid gracefully (local-only: pull/push no-op,
             // remote treated as absent), so a separate blank-uid branch is unnecessary.
             repository.onSignedIn(uid, name, email)
+            if (uid.isNotBlank()) {
+                repository.syncChatMessagesFromCloud(uid)
+                loadPersistedChatMessages()
+            }
         }
     }
 
@@ -162,15 +186,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             _isGeneratingProgram.value = false
 
             // Add to chat as well
-            _chatMessages.value = _chatMessages.value + ChatMessage("coach", "I have generated your custom program! Check it out in your Coach tab:\n\n$generatedText")
+            addAndPersistChatMessage("coach", "I have generated your custom program! Check it out in your Coach tab:\n\n$generatedText")
         }
     }
 
     // Chat Actions
     fun sendMessage(text: String) {
         if (text.isBlank()) return
-        val userMsg = ChatMessage("user", text)
-        _chatMessages.value = _chatMessages.value + userMsg
+        addAndPersistChatMessage("user", text)
         _isChatLoading.value = true
 
         viewModelScope.launch {
@@ -190,7 +213,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                 RetrofitClient.askGemini(text, systemPrompt)
             }
 
-            _chatMessages.value = _chatMessages.value + ChatMessage("coach", response)
+            addAndPersistChatMessage("coach", response)
             _isChatLoading.value = false
             speak(response.take(120)) // Speak the first 120 chars for audio feedback
         }
@@ -430,18 +453,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             if (updated != null) {
                 repository.saveProgram(updated)
                 val summary = updated.joinToString("\n") { "- ${it.name}: ${it.targetSets}x${it.targetReps}" }
-                _chatMessages.value = _chatMessages.value + ChatMessage(
+                addAndPersistChatMessage(
                     "coach",
                     "Updated your program!\n$summary"
                 )
             } else {
-                _chatMessages.value = _chatMessages.value + ChatMessage(
+                addAndPersistChatMessage(
                     "coach",
                     "Sorry, I couldn't update your program right now. Please try again in a moment."
                 )
             }
         } catch (e: Exception) {
-            _chatMessages.value = _chatMessages.value + ChatMessage(
+            addAndPersistChatMessage(
                 "coach",
                 "Sorry, I couldn't update your program right now. Please try again in a moment."
             )
@@ -449,14 +472,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     // Workout Progress Saving
-    fun completeWorkout(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String) {
+    fun completeWorkout(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String, sets: Int = 0) {
         viewModelScope.launch {
             repository.addWorkoutSession(
                 exerciseName = exerciseName,
                 durationSeconds = durationSeconds,
                 reps = reps,
                 formScore = formScore,
-                feedback = feedback
+                feedback = feedback,
+                sets = sets
             )
         }
     }

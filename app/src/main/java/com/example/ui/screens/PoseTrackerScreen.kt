@@ -686,7 +686,8 @@ fun PoseTrackerScreen(
                                 durationSeconds = totalSeconds,
                                 reps = repCount,
                                 formScore = averageFormScore,
-                                feedback = if (repCount > 0) "Great session! Averaged ${averageFormScore.toInt()}% form safety." else "Workout completed."
+                                feedback = if (repCount > 0) "Great session! Averaged ${averageFormScore.toInt()}% form safety." else "Workout completed.",
+                                sets = setCount
                             )
                             viewModel.speak("Session finished! Beautiful job. Your statistics have been synced offline.")
                             onBack()

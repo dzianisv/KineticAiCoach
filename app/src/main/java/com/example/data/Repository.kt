@@ -92,12 +92,13 @@ class FitRepository(
         }
     }
 
-    suspend fun addWorkoutSession(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String, classId: Int? = null) {
+    suspend fun addWorkoutSession(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String, classId: Int? = null, sets: Int = 0) {
         val points = (reps * (formScore / 100.0) * 15).toInt() + 10 // Base points
         val newSession = WorkoutSession(
             exerciseName = exerciseName,
             durationSeconds = durationSeconds,
             reps = reps,
+            sets = sets,
             formScore = formScore,
             pointsEarned = points,
             feedback = feedback,
@@ -168,5 +169,32 @@ class FitRepository(
             firestoreSync.pushClass(uid, c.copy(id = newId))
         }
         return newId
+    }
+
+    suspend fun addChatMessage(role: String, content: String) {
+        val message = ChatMessageEntity(role = role, content = content)
+        val newId = db.chatMessageDao().insertMessage(message)
+
+        val uid = db.userProfileDao().getProfileDirect()?.uid
+        if (!uid.isNullOrBlank()) {
+            firestoreSync.pushMessage(uid, message.copy(id = newId.toInt()))
+        }
+    }
+
+    suspend fun getChatMessages(): List<ChatMessageEntity> = db.chatMessageDao().getAllMessages()
+
+    suspend fun clearChatMessages() {
+        db.chatMessageDao().clearMessages()
+    }
+
+    // Best-effort: pull chat history from Firestore on sign-in. Only seeds local
+    // Room if there's no persisted history yet, so a fresh cloud pull never
+    // clobbers messages the user already has stored on this device.
+    suspend fun syncChatMessagesFromCloud(uid: String) {
+        if (uid.isBlank()) return
+        val localCount = db.chatMessageDao().getAllMessages().size
+        if (localCount > 0) return
+        val remoteMessages = firestoreSync.pullMessages(uid)
+        remoteMessages.forEach { db.chatMessageDao().insertMessage(it) }
     }
 }
