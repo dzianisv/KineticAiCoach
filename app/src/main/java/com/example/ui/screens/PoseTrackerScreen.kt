@@ -39,8 +39,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.key
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
@@ -131,7 +133,7 @@ fun PoseTrackerScreen(
     )
 
     LaunchedEffect(Unit) {
-        if (!hasCameraPermission && !demoMode) {
+        if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -153,6 +155,8 @@ fun PoseTrackerScreen(
     val lastConvertMs = remember { AtomicLong(0L) }
     var reachedBottom by remember { mutableStateOf(false) }
     var formSamples by remember { mutableIntStateOf(0) }
+    // Front/back lens for the small live self-view camera (PiP); flip cycles the two.
+    var cameraLens by remember { mutableIntStateOf(CameraSelector.LENS_FACING_FRONT) }
 
     LaunchedEffect(isWorkoutActive) { analyzerActive.set(isWorkoutActive) }
 
@@ -178,6 +182,8 @@ fun PoseTrackerScreen(
             "form_score (integer 0-100), critique (string, max 8 words, one actionable coaching cue). " +
             "phase is the user's position in the $exerciseName movement: top=start/standing, " +
             "bottom=deepest/hardest point, mid=in transition, none=no person visible."
+        var lastSpokenCritique = ""
+        var lastCritiqueSpokenAt = 0L
         while (isWorkoutActive) {
             val frame = latestFrame.getAndSet(null)
             if (frame == null) { delay(200); continue }
@@ -201,6 +207,15 @@ fun PoseTrackerScreen(
                     isFormWarning = score in 1..79
                     averageFormScore = (averageFormScore * formSamples + score) / (formSamples + 1)
                     formSamples++
+                    // Speak the live coaching cue aloud: only when it changes and at most
+                    // every ~4s, queued (not flushed) so rep announcements take priority.
+                    val now = System.currentTimeMillis()
+                    if (critique != lastSpokenCritique && critique != "Analyzing your form..." &&
+                        now - lastCritiqueSpokenAt > 4000) {
+                        viewModel.speak(critique, android.speech.tts.TextToSpeech.QUEUE_ADD)
+                        lastSpokenCritique = critique
+                        lastCritiqueSpokenAt = now
+                    }
                     // Count a rep on a full descent->stand cycle: once the lifter has
                     // clearly left the top (bottom OR mid) and then returns to top.
                     // (Real footage often reads as "mid" at depth rather than a strict
@@ -267,54 +282,9 @@ fun PoseTrackerScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else if (hasCameraPermission) {
-            val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
-            DisposableEffect(Unit) { onDispose { analysisExecutor.shutdown() } }
-            AndroidView(
-                factory = { ctx ->
-                    val previewView = PreviewView(ctx)
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        val preview = androidx.camera.core.Preview.Builder().build().also {
-                            it.surfaceProvider = previewView.surfaceProvider
-                        }
-                        val analysis = ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                            .build()
-                        analysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                            try {
-                                val now = System.currentTimeMillis()
-                                if (analyzerActive.get() && now - lastConvertMs.get() >= 700) {
-                                    val b64 = imageProxyToBase64(imageProxy, 512)
-                                    if (b64 != null) {
-                                        latestFrame.set(b64)
-                                        lastConvertMs.set(now)
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("PoseTracker", "Frame conversion failed", e)
-                            } finally {
-                                imageProxy.close()
-                            }
-                        }
-                        val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                        try {
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview,
-                                analysis
-                            )
-                        } catch (e: Exception) {
-                            Log.e("PoseTracker", "Camera binding failed", e)
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-                    previewView
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            // Live camera now shown in the small self-view PiP (top-right); keep a
+            // dark analysis backdrop here so the HUD reads clearly.
+            Box(modifier = Modifier.fillMaxSize().background(Color(0xFF020617)))
         } else {
             // Placeholder animator shown only when the camera permission is denied.
             Box(
@@ -380,6 +350,99 @@ fun PoseTrackerScreen(
                 .testTag("back_button")
         ) {
             Icon(Icons.Default.ChevronLeft, contentDescription = "Go Back", tint = Color.White)
+        }
+
+        // --- SMALL LIVE CAMERA SELF-VIEW (PiP) + FRONT/BACK FLIP ---
+        if (hasCameraPermission) {
+            val pipExecutor = remember { Executors.newSingleThreadExecutor() }
+            DisposableEffect(Unit) { onDispose { pipExecutor.shutdown() } }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 118.dp, end = 16.dp)
+                    .size(width = 104.dp, height = 150.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.Black)
+                    .border(2.dp, Color(0xFF38BDF8), RoundedCornerShape(14.dp))
+            ) {
+                key(cameraLens) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { ctx ->
+                            val pv = PreviewView(ctx)
+                            val future = ProcessCameraProvider.getInstance(ctx)
+                            future.addListener({
+                                try {
+                                    val provider = future.get()
+                                    val preview = androidx.camera.core.Preview.Builder().build().also {
+                                        it.surfaceProvider = pv.surfaceProvider
+                                    }
+                                    val analysis = ImageAnalysis.Builder()
+                                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                                        .build()
+                                    analysis.setAnalyzer(pipExecutor) { imageProxy ->
+                                        try {
+                                            val now = System.currentTimeMillis()
+                                            // In demo mode analysis comes from the bundled squat
+                                            // frames, so the live camera is preview-only here.
+                                            if (analyzerActive.get() && !demoMode && now - lastConvertMs.get() >= 700) {
+                                                val b64 = imageProxyToBase64(imageProxy, 512)
+                                                if (b64 != null) {
+                                                    latestFrame.set(b64)
+                                                    lastConvertMs.set(now)
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("PoseTracker", "PiP frame conversion failed", e)
+                                        } finally {
+                                            imageProxy.close()
+                                        }
+                                    }
+                                    val selector = CameraSelector.Builder()
+                                        .requireLensFacing(cameraLens)
+                                        .build()
+                                    provider.unbindAll()
+                                    provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                                } catch (e: Exception) {
+                                    Log.e("PoseTracker", "PiP camera binding failed", e)
+                                }
+                            }, ContextCompat.getMainExecutor(ctx))
+                            pv
+                        }
+                    )
+                }
+                Text(
+                    text = if (demoMode) "CAM" else "LIVE",
+                    color = Color.White,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp)
+                        .background(Color(0xAAEF4444), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                )
+                IconButton(
+                    onClick = {
+                        cameraLens = if (cameraLens == CameraSelector.LENS_FACING_FRONT)
+                            CameraSelector.LENS_FACING_BACK else CameraSelector.LENS_FACING_FRONT
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                        .size(34.dp)
+                        .background(Color(0xCC0F172A), CircleShape)
+                        .testTag("flip_camera_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cameraswitch,
+                        contentDescription = "Switch front/back camera",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
 
         // --- TOP STATS PANEL ---
