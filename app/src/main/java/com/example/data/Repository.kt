@@ -12,6 +12,8 @@ class FitRepository(
     val workoutSessions: Flow<List<WorkoutSession>> = db.workoutSessionDao().getAllSessions()
     val leaderboard: Flow<List<LeaderboardEntry>> = db.leaderboardDao().getLeaderboard()
     val badges: Flow<List<Badge>> = db.badgeDao().getAllBadges()
+    val programExercises: Flow<List<ProgramExercise>> = db.programExerciseDao().getProgramFlow()
+    val workoutClasses: Flow<List<WorkoutClass>> = db.workoutClassDao().getClassesFlow()
 
     suspend fun checkAndSeedDatabase() {
         // 1. Seed Leaderboard if empty
@@ -143,5 +145,27 @@ class FitRepository(
             firestoreSync.pushSession(updatedProfile.uid, newSession)
             firestoreSync.pushProfile(updatedProfile.uid, updatedProfile)
         }
+    }
+
+    suspend fun saveProgram(exercises: List<ProgramExercise>) {
+        db.programExerciseDao().clear()
+        db.programExerciseDao().insertAll(exercises)
+
+        val uid = db.userProfileDao().getProfileDirect()?.uid
+        if (!uid.isNullOrBlank()) {
+            firestoreSync.pushProgram(uid, exercises)
+        }
+    }
+
+    suspend fun getProgram(): List<ProgramExercise> = db.programExerciseDao().getProgramDirect()
+
+    suspend fun saveClass(c: WorkoutClass): Int {
+        val newId = db.workoutClassDao().insertClass(c).toInt()
+
+        val uid = db.userProfileDao().getProfileDirect()?.uid
+        if (!uid.isNullOrBlank()) {
+            firestoreSync.pushClass(uid, c.copy(id = newId))
+        }
+        return newId
     }
 }

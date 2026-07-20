@@ -59,6 +59,40 @@ class FirestoreSync {
         }
     }
 
+    suspend fun pushProgram(uid: String, exercises: List<ProgramExercise>) {
+        if (uid.isBlank()) return
+        try {
+            withContext(Dispatchers.IO) {
+                Tasks.await(
+                    firestore.collection("users")
+                        .document(uid)
+                        .collection("program")
+                        .document("current")
+                        .set(mapOf("exercises" to exercises.map { programExerciseToMap(it) }), SetOptions.merge())
+                )
+            }
+        } catch (e: Exception) {
+            Log.w("FirestoreSync", "pushProgram failed", e)
+        }
+    }
+
+    suspend fun pushClass(uid: String, c: WorkoutClass) {
+        if (uid.isBlank()) return
+        try {
+            withContext(Dispatchers.IO) {
+                Tasks.await(
+                    firestore.collection("users")
+                        .document(uid)
+                        .collection("classes")
+                        .document(c.id.toString())
+                        .set(classToMap(c), SetOptions.merge())
+                )
+            }
+        } catch (e: Exception) {
+            Log.w("FirestoreSync", "pushClass failed", e)
+        }
+    }
+
     suspend fun pullProfile(uid: String): UserProfile? {
         if (uid.isBlank()) return null
         return try {
@@ -110,5 +144,23 @@ class FirestoreSync {
         "pointsEarned" to session.pointsEarned,
         "feedback" to session.feedback,
         "timestamp" to session.timestamp
+    )
+
+    private fun programExerciseToMap(exercise: ProgramExercise): Map<String, Any?> = mapOf(
+        "orderIndex" to exercise.orderIndex,
+        "name" to exercise.name,
+        "targetSets" to exercise.targetSets,
+        "targetReps" to exercise.targetReps,
+        "restSeconds" to exercise.restSeconds,
+        "notes" to exercise.notes
+    )
+
+    private fun classToMap(c: WorkoutClass): Map<String, Any?> = mapOf(
+        "startedAt" to c.startedAt,
+        "completedAt" to c.completedAt,
+        "exerciseCount" to c.exerciseCount,
+        "totalReps" to c.totalReps,
+        "avgFormScore" to c.avgFormScore,
+        "totalPoints" to c.totalPoints
     )
 }

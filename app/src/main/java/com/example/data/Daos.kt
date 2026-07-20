@@ -25,6 +25,33 @@ interface WorkoutSessionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: WorkoutSession)
+
+    @Query("SELECT * FROM workout_sessions WHERE classId = :classId ORDER BY timestamp ASC")
+    suspend fun getSessionsForClass(classId: Int): List<WorkoutSession>
+}
+
+@Dao
+interface ProgramExerciseDao {
+    @Query("SELECT * FROM program_exercises ORDER BY orderIndex ASC")
+    fun getProgramFlow(): Flow<List<ProgramExercise>>
+
+    @Query("SELECT * FROM program_exercises ORDER BY orderIndex ASC")
+    suspend fun getProgramDirect(): List<ProgramExercise>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<ProgramExercise>)
+
+    @Query("DELETE FROM program_exercises")
+    suspend fun clear()
+}
+
+@Dao
+interface WorkoutClassDao {
+    @Query("SELECT * FROM workout_classes ORDER BY completedAt DESC")
+    fun getClassesFlow(): Flow<List<WorkoutClass>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertClass(c: WorkoutClass): Long
 }
 
 @Dao

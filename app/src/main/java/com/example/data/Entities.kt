@@ -28,7 +28,30 @@ data class WorkoutSession(
     val formScore: Double,
     val pointsEarned: Int,
     val feedback: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val classId: Int? = null
+)
+
+@Entity(tableName = "program_exercises")
+data class ProgramExercise(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val orderIndex: Int,
+    val name: String,
+    val targetSets: Int = 3,
+    val targetReps: Int = 12,
+    val restSeconds: Int = 30,
+    val notes: String = ""
+)
+
+@Entity(tableName = "workout_classes")
+data class WorkoutClass(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val startedAt: Long,
+    val completedAt: Long,
+    val exerciseCount: Int,
+    val totalReps: Int,
+    val avgFormScore: Double,
+    val totalPoints: Int
 )
 
 @Entity(tableName = "leaderboard")
