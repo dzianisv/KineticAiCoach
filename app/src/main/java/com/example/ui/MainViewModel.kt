@@ -12,6 +12,7 @@ import com.example.data.LeaderboardEntry
 import com.example.data.UserProfile
 import com.example.data.WorkoutSession
 import com.example.network.RetrofitClient
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -99,18 +100,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     // Onboarding and Profile Actions
     fun signInUser(name: String, email: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         viewModelScope.launch {
-            val current = userProfile.value ?: UserProfile()
-            val updated = current.copy(
-                name = if (current.name.isBlank()) name else current.name,
-                email = email,
-                isLoggedIn = true
-            )
-            repository.saveProfile(updated)
+            // onSignedIn handles blank uid gracefully (local-only: pull/push no-op,
+            // remote treated as absent), so a separate blank-uid branch is unnecessary.
+            repository.onSignedIn(uid, name, email)
         }
     }
 
     fun signOutUser() {
+        FirebaseAuth.getInstance().signOut()
         viewModelScope.launch {
             val current = userProfile.value ?: UserProfile()
             val updated = current.copy(

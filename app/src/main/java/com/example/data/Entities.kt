@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "user_profile")
 data class UserProfile(
     @PrimaryKey val id: Int = 1,
+    val uid: String = "",
     val name: String = "",
     val email: String = "",
     val isLoggedIn: Boolean = false,

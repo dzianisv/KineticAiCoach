@@ -4,7 +4,10 @@ import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
-class FitRepository(private val db: AppDatabase) {
+class FitRepository(
+    private val db: AppDatabase,
+    private val firestoreSync: FirestoreSync = FirestoreSync()
+) {
     val userProfile: Flow<UserProfile?> = db.userProfileDao().getProfileFlow()
     val workoutSessions: Flow<List<WorkoutSession>> = db.workoutSessionDao().getAllSessions()
     val leaderboard: Flow<List<LeaderboardEntry>> = db.leaderboardDao().getLeaderboard()
@@ -44,8 +47,47 @@ class FitRepository(private val db: AppDatabase) {
         }
     }
 
+    suspend fun onSignedIn(uid: String, name: String, email: String) {
+        val local = db.userProfileDao().getProfileDirect() ?: UserProfile()
+        val remote = firestoreSync.pullProfile(uid)
+
+        val merged: UserProfile = if (remote != null) {
+            // Remote wins for cloud-owned fields.
+            local.copy(
+                uid = uid,
+                isLoggedIn = true,
+                name = if (local.name.isNotBlank()) local.name else name,
+                email = if (local.email.isNotBlank()) local.email else email,
+                goals = remote.goals,
+                height = remote.height,
+                weight = remote.weight,
+                weeklyGoalDays = remote.weeklyGoalDays,
+                experiencePoints = remote.experiencePoints,
+                streakDays = remote.streakDays,
+                workoutProgram = remote.workoutProgram
+            )
+        } else {
+            // No remote profile: keep local values, seed cloud from local.
+            local.copy(
+                uid = uid,
+                isLoggedIn = true,
+                name = if (local.name.isNotBlank()) local.name else name,
+                email = if (local.email.isNotBlank()) local.email else email
+            )
+        }
+
+        db.userProfileDao().insertOrUpdate(merged)
+
+        if (remote == null) {
+            firestoreSync.pushProfile(uid, merged)
+        }
+    }
+
     suspend fun saveProfile(profile: UserProfile) {
         db.userProfileDao().insertOrUpdate(profile)
+        if (profile.uid.isNotBlank()) {
+            firestoreSync.pushProfile(profile.uid, profile)
+        }
     }
 
     suspend fun addWorkoutSession(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String) {
@@ -71,7 +113,6 @@ class FitRepository(private val db: AppDatabase) {
             streakDays = newStreak
         )
         db.userProfileDao().insertOrUpdate(updatedProfile)
-
         // 3. Update current user on leaderboard
         db.leaderboardDao().updateCurrentUserPoints(newXp)
 
@@ -95,6 +136,12 @@ class FitRepository(private val db: AppDatabase) {
         // Badge 4: Streak Maker (Streak >= 2 days)
         if (newStreak >= 2) {
             db.badgeDao().unlockBadge("xp_milestone", now)
+        }
+
+        // 5. Best-effort cloud sync
+        if (updatedProfile.uid.isNotBlank()) {
+            firestoreSync.pushSession(updatedProfile.uid, newSession)
+            firestoreSync.pushProfile(updatedProfile.uid, updatedProfile)
         }
     }
 }
