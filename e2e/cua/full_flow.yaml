@@ -11,6 +11,13 @@ goal: >
   taps that trigger network or navigation, wait a few seconds for the next
   screen.
 
+  IMPORTANT: If at any point a SYSTEM dialog appears titled "System UI isn't
+  responding", "Launcher isn't responding", or any "... isn't responding" /
+  "Application not responding" dialog, tap the "Wait" button to dismiss it and
+  continue. That is a transient emulator hiccup, not an app failure. Only an
+  "AI Coach keeps stopping" / "aicoach has stopped" app-crash dialog is a real
+  failure.
+
   1. LOGIN: The app opens on a login screen with the title "AI COACH", a "Sign
      in with Google" button, and a "Continue as Guest" button. Tap "Continue as
      Guest" (the outlined/secondary button, NOT the Google button). Wait for
@@ -39,22 +46,24 @@ goal: >
      and move on (labelled like "Next exercise", "Set done", "Next", or
      "Finish"). Repeat this for every exercise in the class until no more remain.
 
-  6. RESULTS: After the last exercise, a results table appears listing each
-     exercise with its reps / form score / points and a total. This is the goal
-     screen. If there is a "Done" button, you may tap it to return to the
-     dashboard.
+  6. RESULTS: After you finish the LAST exercise, a results screen titled
+     "Class Complete!" appears with a table listing each exercise and its
+     reps / form score / points plus a TOTAL row. This is the goal screen.
+     STOP HERE. Do NOT tap "Done". Report TEST_PASSED with this table visible.
 
-  Report TEST_PASSED once you have reached the end-of-class results table (or the
-  dashboard after tapping Done on the results), having gone through login,
-  onboarding chat, and at least one workout exercise.
+  Report TEST_PASSED once the "Class Complete!" results table is visible, having
+  gone through login, onboarding chat, and all workout exercises. Do not tap
+  "Done" — leave the results table on screen.
 successCriteria:
   - Tapped "Continue as Guest" and left the login screen
   - Answered the coach's onboarding questions in the chat and a program was built
-  - Tapped "Start today's class" and went through at least one workout exercise
-  - An end-of-class results table (per-exercise reps/form/points) was shown, or
-    the dashboard was shown again after finishing the class
+  - Tapped "Start today's class" and went through the workout exercises
+  - The "Class Complete!" end-of-class results table (per-exercise reps/form/
+    points with a TOTAL row) was shown and left visible
 failureCriteria:
-  - The app crashes or shows an error dialog/toast at any step
+  - The AI Coach app itself crashes with an app dialog such as "AI Coach keeps
+    stopping" or "aicoach has stopped" (a system "isn't responding" dialog is
+    NOT an app failure — dismiss it with "Wait" and continue)
   - The flow gets stuck on the login screen after tapping "Continue as Guest"
   - The onboarding chat never accepts input or never produces a program
   - The Start today's class button cannot be found or does nothing
@@ -63,11 +72,10 @@ verification:
   prompt: >
     Look at this screenshot from the AI Coach Android app, taken at the END of an
     automated end-to-end test that logged in as guest, completed a chat
-    onboarding, and ran a simulated multi-exercise workout class. Answer strictly
-    YES or NO: Does the screenshot show EITHER (a) an end-of-class results/summary
-    table listing exercises with reps, a form score, or points, OR (b) a
-    dashboard/home screen (with program, coach chat, or a workout-history list)
-    that clearly comes AFTER a completed class? A login screen ("Sign in with
-    Google" / "Continue as Guest"), a blank screen, or a crash dialog counts as
-    NO. Answer YES or NO, then one sentence of evidence.
+    onboarding, and ran a multi-exercise workout class. Answer strictly YES or
+    NO: Does the screenshot show an end-of-class results/summary screen — a
+    "Class Complete!" heading and/or a table listing exercises with reps, a form
+    score, or points and a TOTAL row? A login screen, a mid-workout exercise
+    screen, a plain dashboard, a blank screen, or a crash dialog counts as NO.
+    Answer YES or NO, then one sentence of evidence.
 maxSteps: 60
