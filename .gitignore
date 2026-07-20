@@ -21,3 +21,5 @@ debug.keystore
 .firebase-provision.local
 app/google-services.json
 .scratch/
+functions/node_modules/
+.agents/

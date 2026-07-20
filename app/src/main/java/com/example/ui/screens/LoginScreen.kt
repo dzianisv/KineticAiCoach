@@ -1,12 +1,8 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,16 +19,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import coil.compose.AsyncImage
+import com.example.R
 import com.example.ui.MainViewModel
-import kotlinx.coroutines.delay
+import com.google.android.gms.tasks.Tasks
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun LoginScreen(
@@ -41,7 +49,7 @@ fun LoginScreen(
 ) {
     var isLoading by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
-    var showAccountSelector by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     Box(
@@ -150,7 +158,45 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             authError = null
-                            showAccountSelector = true
+                            isLoading = true
+                            coroutineScope.launch {
+                                try {
+                                    val credentialManager = CredentialManager.create(context)
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setServerClientId(context.getString(R.string.default_web_client_id))
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .build()
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
+                                    val result = credentialManager.getCredential(context, request)
+                                    val credential = result.credential
+                                    if (credential is CustomCredential &&
+                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                        val idToken = googleIdTokenCredential.idToken
+                                        val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                                        val authResult = withContext(Dispatchers.IO) {
+                                            Tasks.await(FirebaseAuth.getInstance().signInWithCredential(firebaseCredential))
+                                        }
+                                        val user = authResult.user
+                                        isLoading = false
+                                        val displayName = user?.displayName
+                                            ?: user?.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
+                                            ?: "Athlete"
+                                        onLoginSuccess(displayName, user?.email ?: "")
+                                    } else {
+                                        isLoading = false
+                                        authError = "Unsupported credential type received."
+                                    }
+                                } catch (e: GetCredentialException) {
+                                    isLoading = false
+                                    authError = "Google sign-in was cancelled or failed: ${e.localizedMessage ?: e.message ?: "Unknown error"}"
+                                } catch (e: Exception) {
+                                    isLoading = false
+                                    authError = "Sign-in failed: ${e.localizedMessage ?: e.message ?: "Unknown error"}"
+                                }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,6 +229,45 @@ fun LoginScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 2. Guest Sign-In Button (Firebase Anonymous Auth)
+                    OutlinedButton(
+                        onClick = {
+                            authError = null
+                            isLoading = true
+                            coroutineScope.launch {
+                                try {
+                                    val authResult = withContext(Dispatchers.IO) {
+                                        Tasks.await(FirebaseAuth.getInstance().signInAnonymously())
+                                    }
+                                    isLoading = false
+                                    onLoginSuccess("Guest", "")
+                                } catch (e: Exception) {
+                                    isLoading = false
+                                    authError = "Guest sign-in failed: ${e.localizedMessage ?: e.message ?: "Unknown error"}"
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .testTag("guest_signin_button"),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color(0xFFA1A1AA)
+                        ),
+                        border = null,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            "Continue as Guest",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
                     authError?.let { error ->
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -191,124 +276,6 @@ fun LoginScreen(
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center
                         )
-                    }
-                }
-            }
-        }
-
-        // --- GOOGLE ACCOUNT CHOOSER SHEET DIALOG ---
-        AnimatedVisibility(
-            visible = showAccountSelector,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color.Black.copy(alpha = 0.8f)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, Color(0xFF27272A))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp)
-                        ) {
-                            Text(
-                                text = "Choose an Account",
-                                fontSize = 18.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.Black
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "to continue to AI Coach Firebase proxy authentication",
-                                fontSize = 12.sp,
-                                color = Color(0xFFA1A1AA)
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // List of realistic accounts
-                            val emailList = listOf(
-                                "dzianisvv@gmail.com",
-                                "athlete.prime@gmail.com"
-                            )
-
-                            emailList.forEach { email ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp)
-                                        .clickable {
-                                            showAccountSelector = false
-                                            isLoading = true
-                                            coroutineScope.launch {
-                                                delay(1500) // Simulating checking google auth token & contacting firebase proxy lambda
-                                                isLoading = false
-                                                val accountName = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-                                                onLoginSuccess(accountName, email)
-                                            }
-                                        }
-                                        .testTag("account_item_$email"),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF27272A)),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(Color.White.copy(alpha = 0.1f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = email.take(1).uppercase(),
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column {
-                                            Text(
-                                                text = email.substringBefore("@").replaceFirstChar { it.uppercase() },
-                                                fontSize = 14.sp,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = email,
-                                                fontSize = 12.sp,
-                                                color = Color(0xFFA1A1AA)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            TextButton(
-                                onClick = { showAccountSelector = false },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Cancel", color = Color.White, fontWeight = FontWeight.Bold)
-                            }
-                        }
                     }
                 }
             }

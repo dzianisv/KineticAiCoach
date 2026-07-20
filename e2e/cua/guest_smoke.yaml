@@ -1,0 +1,49 @@
+name: guest_smoke
+package: com.aistudio.aicoach.vtzrkm
+# AI Coach app: login screen offers "Sign in with Google" or "Continue as Guest"
+# (real Firebase anonymous auth, works without Google Play Services).
+# This smoke test confirms tapping "Continue as Guest" advances the user past
+# the login screen into onboarding (or a dashboard, if onboarding was already
+# completed/skipped) rather than leaving them stuck on the login screen.
+goal: >
+  The AI Coach app has been launched and is showing its login screen, which has
+  a title "AI COACH", a "Sign in with Google" button, and a "Continue as Guest"
+  button near the bottom of the screen.
+  Steps:
+  1. Confirm the login screen is visible (title "AI COACH" and a "Continue as
+     Guest" button).
+  2. Tap the "Continue as Guest" button (it is the outlined/secondary button
+     below "Sign in with Google", NOT the Google button itself).
+  3. Wait a couple of seconds for Firebase anonymous sign-in to complete and
+     the app to navigate to the next screen.
+  4. Confirm the login screen is GONE — the app should now show either an
+     onboarding form (fields such as name, height, weight, goals, or number of
+     workout days per week) or a dashboard/home screen. Neither the "Sign in
+     with Google" button nor the "Continue as Guest" button should still be
+     visible.
+  5. Report TEST_PASSED once a post-login screen (onboarding or dashboard) is
+     visible and stable, i.e. it is not the login screen anymore and not a
+     blank/black screen or crash dialog.
+successCriteria:
+  - The "Continue as Guest" button was tapped
+  - The login screen (with "Sign in with Google" / "Continue as Guest" buttons)
+    is no longer visible
+  - An onboarding form (name/height/weight/goals/days fields) or a dashboard
+    screen is visible after tapping "Continue as Guest"
+failureCriteria:
+  - The app crashes or shows an error dialog/toast after tapping "Continue as Guest"
+  - The screen still shows the login screen (with "Sign in with Google" or
+    "Continue as Guest" buttons) after 20 seconds
+  - The app shows only a blank white or black screen with no UI elements
+verification:
+  prompt: >
+    Look at this screenshot of the AI Coach Android app. Answer strictly YES or
+    NO to this question: Has the app moved PAST the login screen — i.e. is the
+    login screen (identifiable by the "AI COACH" title with a "Sign in with
+    Google" button and a "Continue as Guest" button) NO LONGER shown, and is an
+    onboarding form (fields like name, height, weight, fitness goals, or workout
+    days per week) or a dashboard/home screen shown INSTEAD? A screenshot that
+    still shows "Sign in with Google" or "Continue as Guest" counts as NO. A
+    blank screen, crash dialog, or error toast also counts as NO.
+    Answer YES or NO, then one sentence of evidence.
+maxSteps: 12
