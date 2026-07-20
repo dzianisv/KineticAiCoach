@@ -21,11 +21,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ui.MainViewModel
+import com.example.ui.screens.ClassResultsScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.OnboardingChatScreen
 import com.example.ui.screens.PoseTrackerScreen
+import com.example.ui.screens.TodaysClassScreen
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -104,6 +106,10 @@ fun MainNavigation() {
                 onStartWorkout = { exerciseName ->
                     navController.navigate("pose_tracker/$exerciseName")
                 },
+                onStartClass = {
+                    viewModel.startTodaysClass()
+                    navController.navigate("todays_class")
+                },
                 onNavigateToOnboarding = {
                     navController.navigate("onboarding")
                 }
@@ -120,6 +126,35 @@ fun MainNavigation() {
                 viewModel = viewModel,
                 onBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // --- PRD v2: today's class routes (Lane B) ---
+        composable("todays_class") {
+            TodaysClassScreen(
+                viewModel = viewModel,
+                onClassFinished = { classId ->
+                    navController.navigate("class_results/$classId") {
+                        popUpTo("dashboard")
+                    }
+                },
+                onExit = {
+                    navController.popBackStack("dashboard", inclusive = false)
+                }
+            )
+        }
+
+        composable(
+            route = "class_results/{classId}",
+            arguments = listOf(navArgument("classId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val classId = backStackEntry.arguments?.getString("classId")?.toIntOrNull() ?: 0
+            ClassResultsScreen(
+                viewModel = viewModel,
+                classId = classId,
+                onDone = {
+                    navController.popBackStack("dashboard", inclusive = false)
                 }
             )
         }

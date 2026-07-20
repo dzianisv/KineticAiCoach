@@ -11,6 +11,7 @@ import com.example.data.FitRepository
 import com.example.data.LeaderboardEntry
 import com.example.data.ProgramExercise
 import com.example.data.UserProfile
+import com.example.data.WorkoutClass
 import com.example.data.WorkoutSession
 import com.example.network.RetrofitClient
 import com.google.firebase.auth.FirebaseAuth
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -459,8 +461,96 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
+    // --- PRD v2: today's class sequencing (Lane B) ---
+    private val defaultClassExercises = listOf(
+        ProgramExercise(orderIndex = 0, name = "Squats"),
+        ProgramExercise(orderIndex = 1, name = "Push-ups"),
+        ProgramExercise(orderIndex = 2, name = "Lunges"),
+        ProgramExercise(orderIndex = 3, name = "Plank"),
+        ProgramExercise(orderIndex = 4, name = "Jumping Jacks")
+    )
+
+    // Exercises that make up "today's class". Falls back to a sensible default so the CTA always works.
+    val todaysClass: StateFlow<List<ProgramExercise>> = repository.programExercises
+        .map { if (it.isEmpty()) defaultClassExercises else it }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultClassExercises)
+
+    // Completed multi-exercise classes for the Dashboard class-history view.
+    val workoutClasses: StateFlow<List<WorkoutClass>> = repository.workoutClasses
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _currentClassIndex = MutableStateFlow(0)
+    val currentClassIndex: StateFlow<Int> = _currentClassIndex.asStateFlow()
+
+    private val _classResults = MutableStateFlow<List<ExerciseResult>>(emptyList())
+    val classResults: StateFlow<List<ExerciseResult>> = _classResults.asStateFlow()
+
+    private var classStartedAt: Long = 0L
+
+    // Convenience accessor for the exercise currently in progress.
+    val currentClassExerciseName: String
+        get() = todaysClass.value.getOrNull(_currentClassIndex.value)?.name ?: "Workout"
+
+    fun startTodaysClass() {
+        _currentClassIndex.value = 0
+        _classResults.value = emptyList()
+        classStartedAt = System.currentTimeMillis()
+    }
+
+    fun recordExerciseResult(name: String, reps: Int, formScore: Int, points: Int) {
+        _classResults.value = _classResults.value + ExerciseResult(name, reps, formScore, points)
+    }
+
+    // Advance to the next exercise. Returns true if more exercises remain, false when the class is finished.
+    fun advanceClass(): Boolean {
+        val next = _currentClassIndex.value + 1
+        return if (next < todaysClass.value.size) {
+            _currentClassIndex.value = next
+            true
+        } else {
+            false
+        }
+    }
+
+    // Persist the completed class: save the WorkoutClass first to get its id, then link each per-exercise session to it.
+    suspend fun finishTodaysClass(): Int {
+        val results = _classResults.value
+        val now = System.currentTimeMillis()
+        val workoutClass = WorkoutClass(
+            startedAt = if (classStartedAt == 0L) now else classStartedAt,
+            completedAt = now,
+            exerciseCount = results.size,
+            totalReps = results.sumOf { it.reps },
+            avgFormScore = if (results.isNotEmpty()) results.map { it.formScore }.average() else 0.0,
+            totalPoints = results.sumOf { it.points }
+        )
+        val classId = repository.saveClass(workoutClass)
+        results.forEach { r ->
+            repository.addWorkoutSession(
+                exerciseName = r.name,
+                durationSeconds = r.reps * 3,
+                reps = r.reps,
+                formScore = r.formScore.toDouble(),
+                feedback = "Class exercise: ${r.name} — ${r.formScore}% form.",
+                classId = classId
+            )
+        }
+        return classId
+    }
+    // --- end PRD v2 (Lane B) ---
+
     override fun onCleared() {
         super.onCleared()
         tts?.shutdown()
     }
 }
+
+// --- PRD v2: today's class sequencing (Lane B) ---
+// Per-exercise result row shown in the class results table.
+data class ExerciseResult(
+    val name: String,
+    val reps: Int,
+    val formScore: Int,
+    val points: Int
+)
+// --- end PRD v2 (Lane B) ---

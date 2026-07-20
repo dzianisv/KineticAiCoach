@@ -92,7 +92,7 @@ class FitRepository(
         }
     }
 
-    suspend fun addWorkoutSession(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String) {
+    suspend fun addWorkoutSession(exerciseName: String, durationSeconds: Int, reps: Int, formScore: Double, feedback: String, classId: Int? = null) {
         val points = (reps * (formScore / 100.0) * 15).toInt() + 10 // Base points
         val newSession = WorkoutSession(
             exerciseName = exerciseName,
@@ -100,7 +100,8 @@ class FitRepository(
             reps = reps,
             formScore = formScore,
             pointsEarned = points,
-            feedback = feedback
+            feedback = feedback,
+            classId = classId
         )
         // 1. Save session
         db.workoutSessionDao().insertSession(newSession)
