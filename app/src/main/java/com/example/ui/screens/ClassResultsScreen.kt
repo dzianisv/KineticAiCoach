@@ -64,6 +64,7 @@ fun ClassResultsScreen(
     }
 
     val totalReps = results.sumOf { it.reps }
+    val totalSets = results.sumOf { it.sets }
     val totalPoints = results.sumOf { it.points }
     val avgForm = if (results.isNotEmpty()) results.map { it.formScore }.average().toInt() else 0
 
@@ -110,6 +111,7 @@ fun ClassResultsScreen(
                     ResultRow(
                         name = "EXERCISE",
                         reps = "REPS",
+                        sets = "SETS",
                         form = "FORM",
                         points = "PTS",
                         isHeader = true
@@ -124,6 +126,7 @@ fun ClassResultsScreen(
                             ResultRow(
                                 name = r.name,
                                 reps = "${r.reps}",
+                                sets = "${r.sets}",
                                 form = "${r.formScore}%",
                                 points = "${r.points}"
                             )
@@ -135,6 +138,7 @@ fun ClassResultsScreen(
                     ResultRow(
                         name = "TOTAL",
                         reps = "$totalReps",
+                        sets = "$totalSets",
                         form = "$avgForm%",
                         points = "$totalPoints",
                         isTotal = true
@@ -164,6 +168,7 @@ fun ClassResultsScreen(
 private fun ResultRow(
     name: String,
     reps: String,
+    sets: String,
     form: String,
     points: String,
     isHeader: Boolean = false,
@@ -183,6 +188,7 @@ private fun ResultRow(
     ) {
         Text(name, fontSize = 13.sp, color = color, fontWeight = weight, modifier = Modifier.weight(2f))
         Text(reps, fontSize = 13.sp, color = color, fontWeight = weight, modifier = Modifier.weight(1f))
+        Text(sets, fontSize = 13.sp, color = color, fontWeight = weight, modifier = Modifier.weight(1f))
         Text(form, fontSize = 13.sp, color = color, fontWeight = weight, modifier = Modifier.weight(1f))
         Text(points, fontSize = 13.sp, color = color, fontWeight = weight, modifier = Modifier.weight(1f))
     }

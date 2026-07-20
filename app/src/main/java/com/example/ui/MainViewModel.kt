@@ -713,8 +713,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         classStartedAt = System.currentTimeMillis()
     }
 
-    fun recordExerciseResult(name: String, reps: Int, formScore: Int, points: Int) {
-        _classResults.value = _classResults.value + ExerciseResult(name, reps, formScore, points)
+    fun recordExerciseResult(name: String, reps: Int, sets: Int, formScore: Int, points: Int) {
+        _classResults.value = _classResults.value + ExerciseResult(name, reps, sets, formScore, points)
     }
 
     // Advance to the next exercise. Returns true if more exercises remain, false when the class is finished.
@@ -743,6 +743,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                 completedAt = now,
                 exerciseCount = results.size,
                 totalReps = results.sumOf { it.reps },
+                sets = results.sumOf { it.sets },
                 avgFormScore = if (results.isNotEmpty()) results.map { it.formScore }.average() else 0.0,
                 totalPoints = results.sumOf { it.points }
             )
@@ -752,6 +753,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     exerciseName = r.name,
                     durationSeconds = r.reps * 3,
                     reps = r.reps,
+                    sets = r.sets,
                     formScore = r.formScore.toDouble(),
                     feedback = "Class exercise: ${r.name} — ${r.formScore}% form.",
                     classId = classId
@@ -779,6 +781,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 data class ExerciseResult(
     val name: String,
     val reps: Int,
+    val sets: Int,
     val formScore: Int,
     val points: Int
 )
