@@ -158,6 +158,46 @@ object RetrofitClient {
         }
     }
 
+    // --- G4/G5/G6: Coach tab attachments (image / video-frame / file) ---
+    // Generic multimodal chat call: sends the user's text plus a single base64
+    // attachment (image, PDF, or plain text) through the same Firebase proxy the
+    // live frame analyzer uses. The proxy's `imageBase64`/`mimeType` fields are
+    // just inlineData passthrough, so any Gemini-supported mimeType works here
+    // (image/jpeg, image/png, application/pdf, text/plain, ...).
+    suspend fun askGeminiWithAttachment(
+        prompt: String,
+        attachmentBase64: String,
+        mimeType: String,
+        systemPrompt: String? = null
+    ): String {
+        val proxy = proxyService ?: return "Attachments require the Firebase Cloud Function Proxy to be configured (FIREBASE_PROXY_URL). Text chat still works offline."
+        val user = FirebaseAuth.getInstance().currentUser
+        val idToken = user?.let {
+            try {
+                Tasks.await(it.getIdToken(false)).token
+            } catch (e: Exception) {
+                Log.e("GeminiApiClient", "Failed to fetch Firebase ID token for attachment analysis", e)
+                null
+            }
+        } ?: return "Please sign in again to analyze attachments."
+
+        return try {
+            val response = proxy.callProxy(
+                authHeader = "Bearer $idToken",
+                request = FirebaseProxyRequest(
+                    prompt = prompt,
+                    systemPrompt = systemPrompt,
+                    imageBase64 = attachmentBase64,
+                    mimeType = mimeType
+                )
+            )
+            response.text
+        } catch (e: Exception) {
+            Log.e("GeminiApiClient", "Attachment analysis proxy call failed", e)
+            "I couldn't analyze that attachment right now. (${e.localizedMessage})"
+        }
+    }
+
     suspend fun askGemini(prompt: String, systemPrompt: String? = null): String {
         // Try calling the Firebase Cloud Function Proxy first if configured
         val proxy = proxyService
