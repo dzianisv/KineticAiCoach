@@ -24,6 +24,7 @@ import com.example.ui.MainViewModel
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.OnboardingScreen
+import com.example.ui.screens.OnboardingChatScreen
 import com.example.ui.screens.PoseTrackerScreen
 import com.example.ui.theme.MyApplicationTheme
 
@@ -87,7 +88,7 @@ fun MainNavigation() {
         }
 
         composable("onboarding") {
-            OnboardingScreen(
+            OnboardingChatScreen(
                 viewModel = viewModel,
                 onOnboardingComplete = {
                     navController.navigate("dashboard") {

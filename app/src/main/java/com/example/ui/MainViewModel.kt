@@ -9,6 +9,7 @@ import com.example.data.AppDatabase
 import com.example.data.Badge
 import com.example.data.FitRepository
 import com.example.data.LeaderboardEntry
+import com.example.data.ProgramExercise
 import com.example.data.UserProfile
 import com.example.data.WorkoutSession
 import com.example.network.RetrofitClient
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
 
 data class ChatMessage(
@@ -169,6 +172,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         _isChatLoading.value = true
 
         viewModelScope.launch {
+            if (isProgramEditRequest(text)) {
+                handleProgramEditRequest(text)
+                _isChatLoading.value = false
+                return@launch
+            }
+
             val profile = userProfile.value ?: UserProfile()
             val systemPrompt = """
                 You are Coach Iron, an encouraging, elite AI fitness trainer. You know a lot about workout forms, skeletal alignment, exercise sets, schedules, and healthy lifestyles. 
@@ -182,6 +191,258 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             _chatMessages.value = _chatMessages.value + ChatMessage("coach", response)
             _isChatLoading.value = false
             speak(response.take(120)) // Speak the first 120 chars for audio feedback
+        }
+    }
+
+    // --- PRD v2: conversational onboarding + program editing (Lane A) ---
+    private val _onboardingMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val onboardingMessages: StateFlow<List<ChatMessage>> = _onboardingMessages.asStateFlow()
+
+    private val _isOnboardingBuilding = MutableStateFlow(false)
+    val isOnboardingBuilding: StateFlow<Boolean> = _isOnboardingBuilding.asStateFlow()
+
+    private val _isOnboardingComplete = MutableStateFlow(false)
+    val isOnboardingComplete: StateFlow<Boolean> = _isOnboardingComplete.asStateFlow()
+
+    private enum class OnboardingStep { HEIGHT, WEIGHT, GOALS, DAYS, DONE }
+    private var onboardingStep = OnboardingStep.HEIGHT
+    private var pendingHeight: Double? = null
+    private var pendingWeight: Double? = null
+    private var pendingGoals: String? = null
+
+    fun startOnboardingChat() {
+        if (_onboardingMessages.value.isNotEmpty()) return
+        onboardingStep = OnboardingStep.HEIGHT
+        pendingHeight = null
+        pendingWeight = null
+        pendingGoals = null
+        _isOnboardingBuilding.value = false
+        _isOnboardingComplete.value = false
+        _onboardingMessages.value = listOf(
+            ChatMessage("coach", "Hey! I'm Coach Iron. Let's build your custom training plan together."),
+            ChatMessage("coach", "First — what's your height in cm?")
+        )
+    }
+
+    fun sendOnboardingReply(text: String) {
+        _onboardingMessages.value = _onboardingMessages.value + ChatMessage("user", text)
+
+        when (onboardingStep) {
+            OnboardingStep.HEIGHT -> {
+                val parsedHeight = extractFirstNumber(text)?.coerceIn(100.0, 250.0) ?: run {
+                    _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                        "coach",
+                        "I couldn't quite parse your height, so I'll assume 175 cm."
+                    )
+                    175.0
+                }
+                pendingHeight = parsedHeight
+                _onboardingMessages.value = _onboardingMessages.value + ChatMessage("coach", "Got it. And your weight in kg?")
+                onboardingStep = OnboardingStep.WEIGHT
+            }
+
+            OnboardingStep.WEIGHT -> {
+                val parsedWeight = extractFirstNumber(text)?.coerceIn(30.0, 250.0) ?: run {
+                    _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                        "coach",
+                        "I couldn't quite parse your weight, so I'll assume 70 kg."
+                    )
+                    70.0
+                }
+                pendingWeight = parsedWeight
+                _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                    "coach",
+                    "What's your main training goal? (e.g. lose weight, build muscle, general fitness)"
+                )
+                onboardingStep = OnboardingStep.GOALS
+            }
+
+            OnboardingStep.GOALS -> {
+                pendingGoals = text.trim().takeIf { it.isNotBlank() } ?: "General Fitness"
+                _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                    "coach",
+                    "How many days per week can you train? (1-7)"
+                )
+                onboardingStep = OnboardingStep.DAYS
+            }
+
+            OnboardingStep.DAYS -> {
+                val parsedDays = extractFirstNumber(text)?.toInt()?.coerceIn(1, 7) ?: run {
+                    _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                        "coach",
+                        "I couldn't quite parse your training days, so I'll assume 3 days per week."
+                    )
+                    3
+                }
+                _onboardingMessages.value = _onboardingMessages.value + ChatMessage("coach", "Great — building your custom program now...")
+                _isOnboardingBuilding.value = true
+                onboardingStep = OnboardingStep.DONE
+
+                viewModelScope.launch {
+                    try {
+                        val finalName = userProfile.value?.name?.takeIf { it.isNotBlank() } ?: "Champion"
+                        updateProfile(
+                            name = finalName,
+                            goals = pendingGoals ?: "General Fitness",
+                            height = pendingHeight ?: 175.0,
+                            weight = pendingWeight ?: 70.0,
+                            weeklyDays = parsedDays
+                        )
+                        buildProgramFromProfile()
+                        val summaryLines = repository.getProgram()
+                            .ifEmpty { defaultProgram() }
+                            .joinToString("\n") { "- ${it.name}: ${it.targetSets}x${it.targetReps} (rest ${it.restSeconds}s)" }
+                        _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                            "coach",
+                            "Program ready! Here's your plan:\n$summaryLines"
+                        )
+                    } catch (e: Exception) {
+                        _onboardingMessages.value = _onboardingMessages.value + ChatMessage(
+                            "coach",
+                            "Program ready! I set up a solid starter plan for you."
+                        )
+                    } finally {
+                        _isOnboardingBuilding.value = false
+                        _isOnboardingComplete.value = true
+                    }
+                }
+            }
+
+            OnboardingStep.DONE -> {
+                _onboardingMessages.value = _onboardingMessages.value + ChatMessage("coach", "You're all set!")
+            }
+        }
+    }
+
+    suspend fun buildProgramFromProfile() {
+        val profile = userProfile.value ?: UserProfile()
+        val exercises = try {
+            val systemPrompt = """
+                You are Coach Iron, an expert fitness coach.
+                Return ONLY a raw JSON array. No markdown, no code fences, no explanation.
+                Each array object must be exactly:
+                {"name":"...","targetSets":3,"targetReps":12,"restSeconds":30,"notes":"..."}
+            """.trimIndent()
+            val prompt = """
+                Build a 5-6 exercise training program for this user profile:
+                Goals: ${profile.goals}
+                Height (cm): ${profile.height}
+                Weight (kg): ${profile.weight}
+                Weekly training days: ${profile.weeklyGoalDays}
+            """.trimIndent()
+            val raw = withContext(Dispatchers.IO) {
+                RetrofitClient.askGemini(prompt, systemPrompt)
+            }
+            parseProgramExercises(raw) ?: defaultProgram()
+        } catch (e: Exception) {
+            defaultProgram()
+        }
+
+        repository.saveProgram(exercises)
+        val summary = exercises.joinToString("\n") {
+            "- ${it.name}: ${it.targetSets}x${it.targetReps} (rest ${it.restSeconds}s)"
+        }
+        repository.saveProfile(profile.copy(workoutProgram = "Custom Program:\n$summary"))
+    }
+
+    private fun extractFirstNumber(text: String): Double? {
+        return Regex("-?\\d+(\\.\\d+)?").find(text)?.value?.toDoubleOrNull()
+    }
+
+    private fun parseProgramExercises(raw: String): List<ProgramExercise>? {
+        return try {
+            val withoutFences = raw
+                .replace(Regex("```(json)?", RegexOption.IGNORE_CASE), "")
+                .replace("```", "")
+                .trim()
+            val start = withoutFences.indexOf('[')
+            val end = withoutFences.lastIndexOf(']')
+            val jsonArrayText = if (start >= 0 && end > start) {
+                withoutFences.substring(start, end + 1)
+            } else {
+                withoutFences
+            }
+            val array = JSONArray(jsonArrayText)
+            val exercises = mutableListOf<ProgramExercise>()
+            for (i in 0 until array.length()) {
+                val item: JSONObject = array.optJSONObject(i) ?: continue
+                val name = item.optString("name", "").trim()
+                if (name.isBlank()) continue
+                exercises += ProgramExercise(
+                    orderIndex = exercises.size,
+                    name = name,
+                    targetSets = item.optInt("targetSets", 3).coerceAtLeast(1),
+                    targetReps = item.optInt("targetReps", 12).coerceAtLeast(1),
+                    restSeconds = item.optInt("restSeconds", 30).coerceAtLeast(0),
+                    notes = item.optString("notes", "").trim()
+                )
+            }
+            exercises.takeIf { it.isNotEmpty() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun defaultProgram(): List<ProgramExercise> {
+        return listOf(
+            ProgramExercise(orderIndex = 0, name = "Squats", targetSets = 3, targetReps = 12, restSeconds = 45, notes = "Keep chest up and drive through heels."),
+            ProgramExercise(orderIndex = 1, name = "Push-ups", targetSets = 3, targetReps = 10, restSeconds = 45, notes = "Maintain a straight line from head to heels."),
+            ProgramExercise(orderIndex = 2, name = "Lunges", targetSets = 3, targetReps = 10, restSeconds = 40, notes = "Alternate legs and keep knees aligned."),
+            ProgramExercise(orderIndex = 3, name = "Plank", targetSets = 3, targetReps = 1, restSeconds = 30, notes = "Hold 30-45 seconds with a braced core."),
+            ProgramExercise(orderIndex = 4, name = "Jumping Jacks", targetSets = 3, targetReps = 25, restSeconds = 30, notes = "Keep a steady rhythm and soft landings.")
+        )
+    }
+
+    private fun isProgramEditRequest(text: String): Boolean {
+        val lower = text.lowercase()
+        val keywords = listOf("program", "add", "remove", "replace", "change", "more", "less", "swap")
+        return keywords.any { keyword -> lower.contains(keyword) }
+    }
+
+    private suspend fun handleProgramEditRequest(text: String) {
+        try {
+            val currentProgram = repository.getProgram().ifEmpty { defaultProgram() }
+            val currentProgramText = currentProgram.joinToString("\n") {
+                "- ${it.name}: ${it.targetSets}x${it.targetReps}, rest ${it.restSeconds}s, notes: ${it.notes}"
+            }
+            val systemPrompt = """
+                You are Coach Iron editing a workout plan.
+                Return ONLY the full updated workout program as a raw JSON array.
+                No markdown, no commentary.
+                Each object must be exactly:
+                {"name":"...","targetSets":3,"targetReps":12,"restSeconds":30,"notes":"..."}
+            """.trimIndent()
+            val prompt = """
+                Current program:
+                $currentProgramText
+
+                User update request:
+                $text
+
+                Return a complete updated program with 5-6 exercises.
+            """.trimIndent()
+            val raw = withContext(Dispatchers.IO) {
+                RetrofitClient.askGemini(prompt, systemPrompt)
+            }
+            val updated = parseProgramExercises(raw)
+            if (updated != null) {
+                repository.saveProgram(updated)
+                val summary = updated.joinToString("\n") { "- ${it.name}: ${it.targetSets}x${it.targetReps}" }
+                _chatMessages.value = _chatMessages.value + ChatMessage(
+                    "coach",
+                    "Updated your program!\n$summary"
+                )
+            } else {
+                _chatMessages.value = _chatMessages.value + ChatMessage(
+                    "coach",
+                    "Sorry, I couldn't update your program right now. Please try again in a moment."
+                )
+            }
+        } catch (e: Exception) {
+            _chatMessages.value = _chatMessages.value + ChatMessage(
+                "coach",
+                "Sorry, I couldn't update your program right now. Please try again in a moment."
+            )
         }
     }
 
