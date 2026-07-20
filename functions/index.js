@@ -88,15 +88,8 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     });
   }
 
-  // 4. Retrieve Gemini API Key securely (bound via Firebase Secret Manager, see runWith above)
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) {
-    console.error("GEMINI_API_KEY is not configured in Firebase Cloud Functions env or config.");
-    return res.status(500).json({
-      error: "Internal Server Error",
-      message: "The server's Gemini API gateway is temporarily unconfigured. Provide a GEMINI_API_KEY in functions env."
-    });
-  }
+  // 4. Select GenAI backend based on environment configuration
+  const useVertexBackend = process.env.GENAI_BACKEND === "vertex" || !process.env.GEMINI_API_KEY;
 
   // 5. Parse Prompt and System Instructions from the Request Body
   const { prompt, systemPrompt } = req.body;
@@ -109,7 +102,11 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
 
   // 6. Contact Gemini API using Official Google Generative AI SDK
   try {
-    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    const ai = useVertexBackend ? new GoogleGenAI({
+      vertexai: true,
+      project: process.env.GCLOUD_PROJECT || "kinetic-ai-coach-50627",
+      location: process.env.VERTEX_LOCATION || "us-central1"
+    }) : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
     // Using gemini-2.5-flash as the fast, efficient model
     const response = await ai.models.generateContent({
