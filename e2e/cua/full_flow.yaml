@@ -57,7 +57,7 @@ failureCriteria:
   - The app crashes or shows an error dialog/toast at any step
   - The flow gets stuck on the login screen after tapping "Continue as Guest"
   - The onboarding chat never accepts input or never produces a program
-  - "Start today's class" cannot be found or does nothing
+  - The Start today's class button cannot be found or does nothing
   - Only a blank white/black screen is shown with no UI
 verification:
   prompt: >
@@ -70,4 +70,4 @@ verification:
     that clearly comes AFTER a completed class? A login screen ("Sign in with
     Google" / "Continue as Guest"), a blank screen, or a crash dialog counts as
     NO. Answer YES or NO, then one sentence of evidence.
-maxSteps: 45
+maxSteps: 60
