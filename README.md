@@ -1,4 +1,4 @@
-![<img src="https://user-images.githubusercontent.com/663460/26973090-f8fdc986-4d14-11e7-995a-e7c5e79ed925.png" alt="Download APK from GitHub" height="100">](https://github.com/dzianisv/KineticAiCoach/releases/tag/v1.0.0)
+[<img src="https://user-images.githubusercontent.com/663460/26973090-f8fdc986-4d14-11e7-995a-e7c5e79ed925.png" alt="Download APK from GitHub" height="100">](https://github.com/dzianisv/KineticAiCoach/releases/tag/v1.0.0)
 
 
 <div align="center">
