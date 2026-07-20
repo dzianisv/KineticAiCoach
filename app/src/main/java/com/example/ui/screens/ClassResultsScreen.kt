@@ -22,8 +22,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.MainViewModel
+import kotlinx.coroutines.delay
 
 /**
  * PRD v2 (Lane B): results TABLE shown after the last exercise in today's class.
@@ -45,6 +50,15 @@ fun ClassResultsScreen(
     onDone: () -> Unit
 ) {
     val results by viewModel.classResults.collectAsState()
+
+    // Guard against an in-flight double-tap from the previous "Finish class"
+    // button (same screen position): ignore taps on Done for a short window so
+    // finishing the class can't accidentally skip past the results table.
+    var doneEnabled by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(800)
+        doneEnabled = true
+    }
 
     val totalReps = results.sumOf { it.reps }
     val totalPoints = results.sumOf { it.points }
@@ -128,7 +142,8 @@ fun ClassResultsScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                onClick = onDone,
+                onClick = { if (doneEnabled) onDone() },
+                enabled = doneEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
