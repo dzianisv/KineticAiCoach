@@ -95,9 +95,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, queueMode: Int = TextToSpeech.QUEUE_FLUSH) {
         if (isTtsInitialized) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            tts?.speak(text, queueMode, null, null)
         } else {
             Log.w("MainViewModel", "TTS is not initialized yet. Text: $text")
         }
