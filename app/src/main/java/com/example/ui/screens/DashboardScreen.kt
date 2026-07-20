@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -167,6 +168,19 @@ fun DashboardScreen(
                             indicatorColor = Color(0xFF27272A)
                         )
                     )
+                    // GAP G7: About/Help tab (index 4)
+                    NavigationRailItem(
+                        selected = selectedTab == 4,
+                        onClick = { selectedTab = 4 },
+                        icon = { Icon(Icons.Default.Info, contentDescription = "About") },
+                        label = { Text("About", fontSize = 10.sp) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = Color.White,
+                            unselectedIconColor = Color(0xFF71717A),
+                            indicatorColor = Color(0xFF27272A)
+                        )
+                    )
                 }
             }
 
@@ -235,6 +249,21 @@ fun DashboardScreen(
                                 ),
                                 modifier = Modifier.testTag("tab_leaderboard")
                             )
+                            // GAP G7: About/Help tab (index 4)
+                            NavigationBarItem(
+                                selected = selectedTab == 4,
+                                onClick = { selectedTab = 4 },
+                                icon = { Icon(Icons.Default.Info, contentDescription = "About") },
+                                label = { Text("About", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = Color.White,
+                                    selectedTextColor = Color.White,
+                                    unselectedIconColor = Color(0xFF71717A),
+                                    unselectedTextColor = Color(0xFF71717A),
+                                    indicatorColor = Color(0xFF27272A)
+                                ),
+                                modifier = Modifier.testTag("tab_about")
+                            )
                         }
                     }
                 }
@@ -249,6 +278,7 @@ fun DashboardScreen(
                         1 -> WorkoutsTab(onStartWorkout, onStartClass)
                         2 -> AnalyticsTab(viewModel)
                         3 -> LeaderboardTab(viewModel)
+                        4 -> AboutTab() // GAP G7: About/Help screen
                     }
                 }
             }
