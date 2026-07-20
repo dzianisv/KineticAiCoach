@@ -22,6 +22,34 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import kotlin.math.sin
 
+/**
+ * Normalizes a free-form exercise name (as typed into a training program, e.g. "Push-ups",
+ * "Push Up", "PUSHUPS", "Pushup") into one of a small set of canonical animation keys:
+ * "squat", "pushup", "plank", "lunge". Anything unrecognized maps to "generic" so the
+ * caller can always render *something* instead of leaving the screen blank.
+ *
+ * Steps: lowercase -> strip spaces/hyphens/underscores -> drop a trailing plural 's'
+ * (but not a trailing double-s) -> substring match against known exercise families.
+ */
+internal fun canonicalExerciseKey(exerciseName: String): String {
+    val compact = exerciseName
+        .lowercase()
+        .replace(Regex("[\\s_-]+"), "")
+    val singular = if (compact.length > 1 && compact.endsWith("s") && !compact.endsWith("ss")) {
+        compact.dropLast(1)
+    } else {
+        compact
+    }
+
+    return when {
+        singular.contains("squat") -> "squat"
+        singular.contains("pushup") -> "pushup"
+        singular.contains("plank") -> "plank"
+        singular.contains("lunge") -> "lunge"
+        else -> "generic"
+    }
+}
+
 @Composable
 fun WorkoutAnimator(
     exerciseName: String,
@@ -59,8 +87,8 @@ fun WorkoutAnimator(
             // Map animationProgress (0..1) to a smooth sin wave (0..1..0) for a natural up/down motion
             val t = (sin(animationProgress * 2 * Math.PI - Math.PI / 2) + 1.0) / 2.0 // ranges from 0.0 to 1.0
 
-            when (exerciseName.lowercase()) {
-                "squats" -> {
+            when (canonicalExerciseKey(exerciseName)) {
+                "squat" -> {
                     // SQUAT ANIMATION
                     // Standing state (t=0) vs deepest squat state (t=1)
                     val headY = centerY - 120f + (t * 60f).toFloat()
@@ -132,7 +160,7 @@ fun WorkoutAnimator(
                     val joints = listOf(neck, shoulderL, shoulderR, hipL, hipR, kneeL, kneeR, footL, footR, elbowL, elbowR, handL, handR)
                     joints.forEach { drawCircle(jointColor, radius = 6f, center = it) }
                 }
-                "pushups" -> {
+                "pushup" -> {
                     // PUSHUP ANIMATION (Side Profile view)
                     // Up state (t=0) vs down state (t=1)
                     val pivotX = centerX - 120f // feet stay locked
@@ -195,8 +223,125 @@ fun WorkoutAnimator(
                     val joints = listOf(Offset(pivotX, pivotY), knee, hip, shoulder, elbow, hand)
                     joints.forEach { drawCircle(jointColor, radius = 6f, center = it) }
                 }
+                "plank" -> {
+                    // PLANK ANIMATION (Side Profile, forearm plank hold)
+                    // Body stays in a straight line from head to heels (the key technique cue);
+                    // a small vertical bob simulates a braced, breathing hold rather than a full rep.
+                    val pivotX = centerX - 120f // feet stay locked
+                    val pivotY = centerY + 100f
+                    val bob = (t * 8f).toFloat()
+                    val angle = 8f // near-flat body line
+
+                    val hipLen = 140f
+                    val shoulderLen = 240f
+                    val headLen = 290f
+
+                    val cosA = kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
+                    val sinA = kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat()
+
+                    val feet = Offset(pivotX, pivotY - bob)
+                    val hip = Offset(pivotX + hipLen * cosA, pivotY - hipLen * sinA - bob)
+                    val shoulder = Offset(pivotX + shoulderLen * cosA, pivotY - shoulderLen * sinA - bob)
+                    val head = Offset(pivotX + headLen * cosA, pivotY - headLen * sinA - bob)
+
+                    // Forearms braced on the ground, directly under the shoulders
+                    val elbow = Offset(shoulder.x - 10f, pivotY - bob)
+                    val hand = Offset(shoulder.x + 40f, pivotY - bob)
+                    val knee = Offset(pivotX + (hipLen / 2f) * cosA, pivotY - (hipLen / 2f) * sinA - bob)
+
+                    // Grid lines
+                    for (i in 1..4) {
+                        val gridY = (height / 5) * i
+                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                    }
+
+                    // Floor
+                    drawLine(Color(0xFF475569), Offset(0f, pivotY + 10f), Offset(width, pivotY + 10f), 4f)
+
+                    // Head
+                    drawCircle(jointColor, radius = 23f, center = head, style = Stroke(width = 4f))
+                    drawCircle(boneColor.copy(alpha = 0.2f), radius = 21f, center = head)
+
+                    // Straight body line: feet -> hip -> shoulder -> head
+                    drawLine(boneColor, feet, hip, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, hip, shoulder, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, shoulder, head, strokeWidth, StrokeCap.Round)
+
+                    // Forearm support
+                    drawLine(boneColor, shoulder, elbow, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, elbow, hand, strokeWidth, StrokeCap.Round)
+
+                    val joints = listOf(feet, knee, hip, shoulder, elbow, hand)
+                    joints.forEach { drawCircle(jointColor, radius = 6f, center = it) }
+                }
+                "lunge" -> {
+                    // LUNGE ANIMATION (Side stance - front leg steps forward and bends)
+                    // Standing tall (t=0) vs bottom of lunge with front knee over the ankle
+                    // and back knee lowering toward the ground (t=1) - upright torso throughout.
+                    val headY = centerY - 120f + (t * 40f).toFloat()
+                    val neckY = headY + 30f
+                    val shoulderY = neckY
+                    val hipY = centerY + 20f + (t * 60f).toFloat()
+                    val shoulderWidth = 40f
+
+                    val head = Offset(centerX, headY)
+                    val neck = Offset(centerX, neckY)
+                    val shoulderL = Offset(centerX - shoulderWidth, shoulderY)
+                    val shoulderR = Offset(centerX + shoulderWidth, shoulderY)
+                    val hip = Offset(centerX, hipY)
+
+                    // Front leg: steps forward and bends toward a 90 degree knee at the bottom
+                    val frontKnee = Offset(centerX + 70f, centerY + 90f + (t * 20f).toFloat())
+                    val frontFoot = Offset(centerX + 90f, centerY + 180f)
+
+                    // Back leg: extends behind, knee lowers toward the ground at the bottom
+                    val backKnee = Offset(centerX - 60f, centerY + 100f + (t * 60f).toFloat())
+                    val backFoot = Offset(centerX - 90f, centerY + 185f)
+
+                    // Arms relaxed at the sides for balance
+                    val elbowL = Offset(centerX - shoulderWidth - 15f, shoulderY + 50f)
+                    val elbowR = Offset(centerX + shoulderWidth + 15f, shoulderY + 50f)
+                    val handL = Offset(centerX - shoulderWidth - 10f, shoulderY + 100f)
+                    val handR = Offset(centerX + shoulderWidth + 10f, shoulderY + 100f)
+
+                    // Grid lines
+                    for (i in 1..4) {
+                        val gridY = (height / 5) * i
+                        drawLine(Color(0xFF334155).copy(alpha = 0.3f), Offset(0f, gridY), Offset(width, gridY), 2f)
+                    }
+
+                    // Head
+                    drawCircle(jointColor, radius = 25f, center = head, style = Stroke(width = 4f))
+                    drawCircle(boneColor.copy(alpha = 0.2f), radius = 23f, center = head)
+
+                    // Spine + shoulders
+                    drawLine(boneColor, neck, hip, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, shoulderL, shoulderR, strokeWidth, StrokeCap.Round)
+
+                    // Arms
+                    drawLine(boneColor, shoulderL, elbowL, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, elbowL, handL, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, shoulderR, elbowR, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, elbowR, handR, strokeWidth, StrokeCap.Round)
+
+                    // Front leg (hip -> knee -> foot)
+                    drawLine(boneColor, hip, frontKnee, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, frontKnee, frontFoot, strokeWidth, StrokeCap.Round)
+
+                    // Back leg (hip -> knee -> foot)
+                    drawLine(boneColor, hip, backKnee, strokeWidth, StrokeCap.Round)
+                    drawLine(boneColor, backKnee, backFoot, strokeWidth, StrokeCap.Round)
+
+                    val joints = listOf(
+                        neck, shoulderL, shoulderR, hip, frontKnee, frontFoot, backKnee, backFoot,
+                        elbowL, elbowR, handL, handR
+                    )
+                    joints.forEach { drawCircle(jointColor, radius = 6f, center = it) }
+                }
                 else -> {
-                    // JUMPING JACKS (Front Profile view)
+                    // GENERIC DEFAULT (Jumping-jacks-style moving figure)
+                    // Used for any exercise name we don't recognize so the screen never
+                    // renders blank - always shows *some* correct-technique moving figure.
                     // Arms down & legs together (t=0) vs arms up & legs wide (t=1)
                     val head = Offset(centerX, centerY - 120f)
                     val neck = Offset(centerX, centerY - 95f)
