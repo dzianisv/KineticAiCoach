@@ -86,6 +86,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.AttachmentPickerButton
+import com.example.ui.ChatAttachmentPreview
 import com.example.ui.ChatMessage
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
@@ -396,12 +398,19 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         ),
                         modifier = Modifier.widthIn(max = 280.dp)
                     ) {
-                        Text(
-                            text = msg.text,
-                            fontSize = 14.sp,
-                            color = Color.White,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            // --- G4/G5/G6: render an image thumbnail, playable video, or file chip above the text ---
+                            if (msg.attachmentUri != null) {
+                                ChatAttachmentPreview(msg, modifier = Modifier.padding(bottom = if (msg.text.isNotBlank()) 8.dp else 0.dp))
+                            }
+                            if (msg.text.isNotBlank()) {
+                                Text(
+                                    text = msg.text,
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -457,6 +466,15 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // --- G4/G5/G6: attachment button (photo / video / file) ---
+            AttachmentPickerButton(
+                onImagePicked = { uri -> viewModel.sendImageMessage(uri, inputMsg); inputMsg = "" },
+                onVideoPicked = { uri -> viewModel.sendVideoMessage(uri, inputMsg); inputMsg = "" },
+                onFilePicked = { uri, name, mimeType -> viewModel.sendFileMessage(uri, name, mimeType, inputMsg); inputMsg = "" }
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
             OutlinedTextField(
                 value = inputMsg,
                 onValueChange = { inputMsg = it },

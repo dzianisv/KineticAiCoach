@@ -1,7 +1,12 @@
 package com.example.ui
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.speech.tts.TextToSpeech
+import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,12 +31,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.util.Locale
+
+// --- G4/G5/G6: Coach tab attachments (image / video / file) ---
+// Kept as its own enum + additive, defaulted fields on ChatMessage so this stays
+// a small, additive change alongside other agents' edits to chat persistence.
+enum class AttachmentType { IMAGE, VIDEO, FILE }
 
 data class ChatMessage(
     val sender: String, // "user" or "coach"
     val text: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    // Attachment metadata (null for plain-text messages).
+    val attachmentUri: String? = null,
+    val attachmentType: AttachmentType? = null,
+    val attachmentName: String? = null // display filename, used for FILE chips
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
@@ -195,6 +210,183 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             speak(response.take(120)) // Speak the first 120 chars for audio feedback
         }
     }
+
+    // ==================== G4/G5/G6: Coach tab attachments ====================
+    // Image, video, and file attachments from the Coach chat's attachment button
+    // (DashboardScreen.kt + CoachAttachments.kt). Each function immediately posts
+    // a user ChatMessage carrying the attachment Uri/type/name so the UI can
+    // render a thumbnail / player / file chip right away, then reads + base64
+    // encodes the attachment on IO and forwards it to Gemini via the same
+    // Firebase proxy used by askGemini/analyzeFrame.
+
+    /** G4: user picked an image via PickVisualMedia(ImageOnly). */
+    fun sendImageMessage(imageUri: Uri, caption: String) {
+        val userMsg = ChatMessage(
+            sender = "user",
+            text = caption,
+            attachmentUri = imageUri.toString(),
+            attachmentType = AttachmentType.IMAGE
+        )
+        _chatMessages.value = _chatMessages.value + userMsg
+        _isChatLoading.value = true
+
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val encoded = withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)?.let { encodeBitmapToBase64Jpeg(it) }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to read image attachment", e)
+                    null
+                }
+            }
+
+            val response = if (encoded != null) {
+                val profile = userProfile.value ?: UserProfile()
+                val systemPrompt = """
+                    You are Coach Iron, an encouraging, elite AI fitness trainer. The user shared a photo (e.g. of their exercise form, body, or gym setup). Look at it and respond with short, direct, motivating, professional feedback. Incorporate user details if relevant: Name: ${profile.name}, Goals: ${profile.goals}.
+                """.trimIndent()
+                withContext(Dispatchers.IO) {
+                    RetrofitClient.askGeminiWithAttachment(
+                        prompt = caption.ifBlank { "Take a look at this photo and give me feedback." },
+                        attachmentBase64 = encoded,
+                        mimeType = "image/jpeg",
+                        systemPrompt = systemPrompt
+                    )
+                }
+            } else {
+                "I couldn't read that image — please try attaching it again."
+            }
+
+            _chatMessages.value = _chatMessages.value + ChatMessage("coach", response)
+            _isChatLoading.value = false
+            speak(response.take(120))
+        }
+    }
+
+    /**
+     * G5: user picked a video via PickVisualMedia(VideoOnly). Full-video upload to
+     * Gemini is out of scope (proxy only forwards a single inlineData blob); as a
+     * nice-to-have we extract the first frame so the coach can still comment on
+     * form. The video itself is always saved to the message list and playable
+     * inline via VideoView (see CoachAttachments.kt).
+     */
+    fun sendVideoMessage(videoUri: Uri, caption: String) {
+        val userMsg = ChatMessage(
+            sender = "user",
+            text = caption,
+            attachmentUri = videoUri.toString(),
+            attachmentType = AttachmentType.VIDEO
+        )
+        _chatMessages.value = _chatMessages.value + userMsg
+        _isChatLoading.value = true
+
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val encoded = withContext(Dispatchers.IO) {
+                try {
+                    val retriever = MediaMetadataRetriever()
+                    retriever.setDataSource(context, videoUri)
+                    val frame = retriever.frameAtTime
+                    retriever.release()
+                    frame?.let { encodeBitmapToBase64Jpeg(it) }
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to extract video thumbnail", e)
+                    null
+                }
+            }
+
+            val response = if (encoded != null) {
+                val profile = userProfile.value ?: UserProfile()
+                val systemPrompt = """
+                    You are Coach Iron, an encouraging, elite AI fitness trainer. The user shared a workout video; you are only shown its first frame as a still image, so briefly acknowledge that limitation and give general form feedback based on what's visible. Keep it short, direct, motivating, professional. Incorporate user details if relevant: Name: ${profile.name}, Goals: ${profile.goals}.
+                """.trimIndent()
+                withContext(Dispatchers.IO) {
+                    RetrofitClient.askGeminiWithAttachment(
+                        prompt = caption.ifBlank { "Here's a video of my workout — can you check my form from this frame?" },
+                        attachmentBase64 = encoded,
+                        mimeType = "image/jpeg",
+                        systemPrompt = systemPrompt
+                    )
+                }
+            } else {
+                "Got your video! I couldn't pull a preview frame to analyze, but it's saved above so you can review it yourself."
+            }
+
+            _chatMessages.value = _chatMessages.value + ChatMessage("coach", response)
+            _isChatLoading.value = false
+            speak(response.take(120))
+        }
+    }
+
+    /** G6: user picked a document (PDF / text / other) via GetContent with a wildcard mime filter. */
+    fun sendFileMessage(fileUri: Uri, fileName: String, mimeType: String?, caption: String) {
+        val userMsg = ChatMessage(
+            sender = "user",
+            text = caption,
+            attachmentUri = fileUri.toString(),
+            attachmentType = AttachmentType.FILE,
+            attachmentName = fileName
+        )
+        _chatMessages.value = _chatMessages.value + userMsg
+        _isChatLoading.value = true
+
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val resolvedMimeType = mimeType ?: context.contentResolver.getType(fileUri) ?: "application/octet-stream"
+            val encoded = withContext(Dispatchers.IO) {
+                try {
+                    val bytes = context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+                    if (bytes != null && bytes.size <= MAX_ATTACHMENT_FILE_BYTES) {
+                        Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Failed to read file attachment", e)
+                    null
+                }
+            }
+
+            val response = if (encoded != null) {
+                val profile = userProfile.value ?: UserProfile()
+                val systemPrompt = """
+                    You are Coach Iron, an encouraging, elite AI fitness trainer. The user shared a document ($fileName). Read its contents and respond helpfully — e.g. summarize a training plan, answer questions about it, or extract relevant numbers. Keep it short, direct, motivating, professional. Incorporate user details if relevant: Name: ${profile.name}, Goals: ${profile.goals}.
+                """.trimIndent()
+                withContext(Dispatchers.IO) {
+                    RetrofitClient.askGeminiWithAttachment(
+                        prompt = caption.ifBlank { "Can you review this file: $fileName?" },
+                        attachmentBase64 = encoded,
+                        mimeType = resolvedMimeType,
+                        systemPrompt = systemPrompt
+                    )
+                }
+            } else {
+                "That file ($fileName) is too large or unreadable for me to analyze right now (max ${MAX_ATTACHMENT_FILE_BYTES / (1024 * 1024)}MB)."
+            }
+
+            _chatMessages.value = _chatMessages.value + ChatMessage("coach", response)
+            _isChatLoading.value = false
+            speak(response.take(120))
+        }
+    }
+
+    /** Downscales + JPEG-compresses a bitmap before base64 encoding, keeping the request payload small. */
+    private fun encodeBitmapToBase64Jpeg(bitmap: Bitmap, maxDimension: Int = 1280, quality: Int = 85): String {
+        val largestSide = maxOf(bitmap.width, bitmap.height)
+        val scaled = if (largestSide > maxDimension) {
+            val ratio = maxDimension.toFloat() / largestSide
+            Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
+        } else {
+            bitmap
+        }
+        val stream = ByteArrayOutputStream()
+        scaled.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+    }
+    // ==================== end G4/G5/G6 ====================
 
     // --- PRD v2: conversational onboarding + program editing (Lane A) ---
     private val _onboardingMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -549,6 +741,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     override fun onCleared() {
         super.onCleared()
         tts?.shutdown()
+    }
+
+    companion object {
+        // Guard against oversized inline-data payloads on the Gemini proxy (G6 file attachments).
+        // ~15MB raw -> ~20MB base64, matching typical Gemini inlineData request-size limits.
+        private const val MAX_ATTACHMENT_FILE_BYTES = 15 * 1024 * 1024
     }
 }
 
