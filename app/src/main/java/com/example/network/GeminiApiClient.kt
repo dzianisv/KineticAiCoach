@@ -52,7 +52,10 @@ data class Candidate(
 @JsonClass(generateAdapter = true)
 data class FirebaseProxyRequest(
     val prompt: String,
-    val systemPrompt: String? = null
+    val systemPrompt: String? = null,
+    val imageBase64: String? = null,
+    val mimeType: String? = null,
+    val responseMimeType: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -107,6 +110,50 @@ object RetrofitClient {
                 .build()
             retrofit.create(FirebaseProxyService::class.java)
         } else {
+            null
+        }
+    }
+
+    /**
+     * Sends a single camera frame (base64 JPEG) to the secure proxy for live
+     * workout form analysis. Returns the raw model text (expected to be JSON when
+     * responseMimeType is application/json). Returns null on any failure so the
+     * caller can decide how to degrade — we never fabricate analysis.
+     */
+    suspend fun analyzeFrame(
+        imageBase64: String,
+        prompt: String,
+        systemPrompt: String? = null,
+        responseMimeType: String? = "application/json"
+    ): String? {
+        val proxy = proxyService ?: run {
+            Log.e("GeminiApiClient", "Frame analysis requires the Firebase proxy; none configured.")
+            return null
+        }
+        val user = FirebaseAuth.getInstance().currentUser
+        val idToken = user?.let {
+            try {
+                Tasks.await(it.getIdToken(false)).token
+            } catch (e: Exception) {
+                Log.e("GeminiApiClient", "Failed to fetch Firebase ID token for frame analysis", e)
+                null
+            }
+        } ?: return null
+
+        return try {
+            val response = proxy.callProxy(
+                authHeader = "Bearer $idToken",
+                request = FirebaseProxyRequest(
+                    prompt = prompt,
+                    systemPrompt = systemPrompt,
+                    imageBase64 = imageBase64,
+                    mimeType = "image/jpeg",
+                    responseMimeType = responseMimeType
+                )
+            )
+            response.text
+        } catch (e: Exception) {
+            Log.e("GeminiApiClient", "Frame analysis proxy call failed", e)
             null
         }
     }

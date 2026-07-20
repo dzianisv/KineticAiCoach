@@ -6,8 +6,13 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.util.Base64
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -15,6 +20,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,8 +55,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -67,7 +71,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
@@ -79,7 +85,16 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
+import com.example.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 @Composable
 fun PoseTrackerScreen(
@@ -89,6 +104,16 @@ fun PoseTrackerScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Honest demo feed: when a flag file is present, cycle bundled squat keyframes
+    // through the SAME real analyzeFrame -> Gemini pipeline instead of the live camera.
+    // Lets the workout screen be demonstrated where no real camera/person is available
+    // (e.g. emulator). When the flag is absent, production behavior is unchanged.
+    val demoMode = remember {
+        java.io.File(context.getExternalFilesDir(null), "demo_feed").exists()
+    }
+    val demoFrames = remember { if (demoMode) loadDemoFrames(context) else emptyList() }
+    var demoIndex by remember { mutableIntStateOf(0) }
 
     // Permissions State
     var hasCameraPermission by remember {
@@ -106,7 +131,7 @@ fun PoseTrackerScreen(
     )
 
     LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
+        if (!hasCameraPermission && !demoMode) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -115,35 +140,102 @@ fun PoseTrackerScreen(
     var isWorkoutActive by remember { mutableStateOf(false) }
     var repCount by remember { mutableIntStateOf(0) }
     var totalSeconds by remember { mutableIntStateOf(0) }
-    var averageFormScore by remember { mutableStateOf(95.0) }
+    var averageFormScore by remember { mutableStateOf(0.0) }
     var currentCritique by remember { mutableStateOf("Position yourself in front of the camera to begin.") }
-    var isSimulationMode by remember { mutableStateOf(true) } // Simulation Mode ON by default for emulator
+    var isFormWarning by remember { mutableStateOf(false) }
+    var isAnalyzing by remember { mutableStateOf(false) }
 
-    // Timing & Simulation Loops
+    // Non-recomposing handoff between the CameraX analyzer thread and the coroutine
+    // that talks to Gemini: the analyzer drops the freshest JPEG frame here and the
+    // analysis loop consumes it. Decouples capture rate from network latency.
+    val latestFrame = remember { AtomicReference<String?>(null) }
+    val analyzerActive = remember { AtomicBoolean(false) }
+    val lastConvertMs = remember { AtomicLong(0L) }
+    var reachedBottom by remember { mutableStateOf(false) }
+    var formSamples by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(isWorkoutActive) { analyzerActive.set(isWorkoutActive) }
+
+    // Elapsed-time ticker
     LaunchedEffect(isWorkoutActive) {
         if (isWorkoutActive) {
             viewModel.speak("Starting $exerciseName tracker. Let's do this!")
             while (isWorkoutActive) {
                 delay(1000)
                 totalSeconds++
+            }
+        }
+    }
 
-                // In Simulation mode, increment reps and trigger TTS feedback periodically
-                if (isSimulationMode) {
-                    if (totalSeconds % 6 == 0) {
-                        repCount++
-                        val performanceScore = if (repCount % 3 == 0) 84.0 else 96.0
-                        averageFormScore = (averageFormScore * repCount + performanceScore) / (repCount + 1)
-
-                        if (repCount % 3 == 0) {
-                            currentCritique = "Warning: Keep your back straight! Lower hips slowly."
-                            viewModel.speak("Form warning. Keep your back straight, align your posture.")
-                        } else {
-                            currentCritique = "Perfect $exerciseName technique! Rep $repCount counted."
-                            viewModel.speak("Excellent! Rep $repCount. Beautiful form.")
+    // Live Gemini form-analysis loop: pulls the freshest frame and asks Gemini to
+    // grade form and report the movement phase. Reps are counted client-side from
+    // bottom->top phase transitions (LLMs are unreliable at counting directly).
+    LaunchedEffect(isWorkoutActive) {
+        if (!isWorkoutActive) return@LaunchedEffect
+        val systemPrompt = "You are an expert fitness form coach analyzing ONE still video frame of a " +
+            "user performing $exerciseName. Respond ONLY with compact minified JSON (no markdown, no prose) " +
+            "with exactly these keys: person_detected (boolean), phase (one of \"top\",\"bottom\",\"mid\",\"none\"), " +
+            "form_score (integer 0-100), critique (string, max 8 words, one actionable coaching cue). " +
+            "phase is the user's position in the $exerciseName movement: top=start/standing, " +
+            "bottom=deepest/hardest point, mid=in transition, none=no person visible."
+        while (isWorkoutActive) {
+            val frame = latestFrame.getAndSet(null)
+            if (frame == null) { delay(200); continue }
+            isAnalyzing = true
+            val raw = withContext(Dispatchers.IO) {
+                RetrofitClient.analyzeFrame(
+                    imageBase64 = frame,
+                    prompt = "Analyze this $exerciseName frame.",
+                    systemPrompt = systemPrompt
+                )
+            }
+            isAnalyzing = false
+            val json = raw?.let { parseAnalysis(it) }
+            if (json != null) {
+                val person = json.optBoolean("person_detected", false)
+                val phase = json.optString("phase", "none")
+                val score = json.optInt("form_score", 0)
+                val critique = json.optString("critique", "").ifBlank { "Analyzing your form..." }
+                if (person) {
+                    currentCritique = critique
+                    isFormWarning = score in 1..79
+                    averageFormScore = (averageFormScore * formSamples + score) / (formSamples + 1)
+                    formSamples++
+                    // Count a rep on a full descent->stand cycle: once the lifter has
+                    // clearly left the top (bottom OR mid) and then returns to top.
+                    // (Real footage often reads as "mid" at depth rather than a strict
+                    // "bottom", so we key off leaving/returning to the top position.)
+                    when (phase) {
+                        "bottom", "mid" -> reachedBottom = true
+                        "top" -> if (reachedBottom) {
+                            reachedBottom = false
+                            repCount++
+                            viewModel.speak(if (score >= 80) "Rep $repCount. Good form." else "Rep $repCount. Watch your form.")
                         }
                     }
+                } else {
+                    currentCritique = "Position yourself fully in frame to begin."
+                    isFormWarning = false
                 }
             }
+            delay(250)
+        }
+    }
+
+    // Demo feed driver: advances the displayed squat keyframe smoothly for the viewer
+    // and drops the current frame into latestFrame for the real Gemini analysis loop
+    // to consume (throttled to match the live-camera capture cadence).
+    LaunchedEffect(isWorkoutActive, demoMode) {
+        if (!demoMode || demoFrames.isEmpty() || !isWorkoutActive) return@LaunchedEffect
+        var lastFed = 0L
+        while (isWorkoutActive) {
+            demoIndex = (demoIndex + 1) % demoFrames.size
+            val now = System.currentTimeMillis()
+            if (now - lastFed >= 700) {
+                latestFrame.set(demoFrames[demoIndex].second)
+                lastFed = now
+            }
+            delay(360)
         }
     }
 
@@ -166,8 +258,17 @@ fun PoseTrackerScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // --- BASE CAMERA OR SIMULATION ANIMATOR ---
-        if (hasCameraPermission && !isSimulationMode) {
+        // --- LIVE CAMERA WITH GEMINI FRAME ANALYSIS (or bundled demo feed) ---
+        if (demoMode && demoFrames.isNotEmpty()) {
+            Image(
+                bitmap = demoFrames[demoIndex].first.asImageBitmap(),
+                contentDescription = "Demo workout feed",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else if (hasCameraPermission) {
+            val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+            DisposableEffect(Unit) { onDispose { analysisExecutor.shutdown() } }
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx)
@@ -177,13 +278,34 @@ fun PoseTrackerScreen(
                         val preview = androidx.camera.core.Preview.Builder().build().also {
                             it.surfaceProvider = previewView.surfaceProvider
                         }
-                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                        val analysis = ImageAnalysis.Builder()
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                            .build()
+                        analysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                            try {
+                                val now = System.currentTimeMillis()
+                                if (analyzerActive.get() && now - lastConvertMs.get() >= 700) {
+                                    val b64 = imageProxyToBase64(imageProxy, 512)
+                                    if (b64 != null) {
+                                        latestFrame.set(b64)
+                                        lastConvertMs.set(now)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("PoseTracker", "Frame conversion failed", e)
+                            } finally {
+                                imageProxy.close()
+                            }
+                        }
+                        val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
                         try {
                             cameraProvider.unbindAll()
                             cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
-                                preview
+                                preview,
+                                analysis
                             )
                         } catch (e: Exception) {
                             Log.e("PoseTracker", "Camera binding failed", e)
@@ -194,7 +316,7 @@ fun PoseTrackerScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // High fidelity Workout Animator when Camera isn't active/allowed or simulation mode is toggled on
+            // Placeholder animator shown only when the camera permission is denied.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -203,7 +325,7 @@ fun PoseTrackerScreen(
                 WorkoutAnimator(
                     exerciseName = exerciseName,
                     modifier = Modifier.fillMaxSize(),
-                    isWarningMode = currentCritique.contains("Warning") && isWorkoutActive
+                    isWarningMode = isFormWarning && isWorkoutActive
                 )
             }
         }
@@ -334,9 +456,9 @@ fun PoseTrackerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (currentCritique.contains("Warning")) Icons.Default.Info else Icons.Default.Mic,
+                        imageVector = if (isFormWarning) Icons.Default.Info else Icons.Default.Mic,
                         contentDescription = "Critique Icon",
-                        tint = if (currentCritique.contains("Warning")) Color(0xFFEF4444) else Color(0xFF38BDF8),
+                        tint = if (isFormWarning) Color(0xFFEF4444) else Color(0xFF38BDF8),
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
@@ -360,29 +482,32 @@ fun PoseTrackerScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = if (hasCameraPermission) Icons.Default.Videocam else Icons.Default.CameraAlt,
+                        imageVector = if (hasCameraPermission || demoMode) Icons.Default.Videocam else Icons.Default.CameraAlt,
                         contentDescription = "Camera",
-                        tint = if (hasCameraPermission) Color(0xFF10B981) else Color(0xFF94A3B8),
+                        tint = if (hasCameraPermission || demoMode) Color(0xFF10B981) else Color(0xFF94A3B8),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
+                        text = if (demoMode) "Demo Feed • Live AI" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
                         fontSize = 12.sp,
                         color = Color(0xFF94A3B8)
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Simulate Reps", fontSize = 12.sp, color = Color(0xFF94A3B8))
+                    Text(
+                        text = if (isAnalyzing) "AI analyzing…" else "Gemini Live Coach",
+                        fontSize = 12.sp,
+                        color = if (isAnalyzing) Color(0xFF38BDF8) else Color(0xFF10B981),
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = isSimulationMode,
-                        onCheckedChange = { isSimulationMode = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFF10B981),
-                            checkedTrackColor = Color(0xFF064E3B)
-                        )
+                    Icon(
+                        imageVector = Icons.Default.Videocam,
+                        contentDescription = "Live analysis",
+                        tint = if (isAnalyzing) Color(0xFF38BDF8) else Color(0xFF10B981),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -443,3 +568,66 @@ fun PoseTrackerScreen(
 // BorderStroke helper
 @Composable
 fun BorderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = androidx.compose.foundation.BorderStroke(width, color)
+
+// Loads bundled demo squat keyframes from assets/demo_squat as (bitmap for display,
+// base64 JPEG for Gemini). Used only when the "demo_feed" flag file is present.
+private fun loadDemoFrames(context: android.content.Context): List<Pair<Bitmap, String>> {
+    return try {
+        val dir = "demo_squat"
+        val names = context.assets.list(dir)?.filter { it.endsWith(".jpg") }?.sorted() ?: emptyList()
+        names.mapNotNull { name ->
+            try {
+                val bytes = context.assets.open("$dir/$name").use { it.readBytes() }
+                val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                if (bmp != null) Pair(bmp, b64) else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("PoseTracker", "loadDemoFrames failed", e)
+        emptyList()
+    }
+}
+
+// Converts a CameraX frame to a downscaled, upright JPEG encoded as base64 (NO_WRAP)
+// suitable for sending to Gemini. Returns null on any failure.
+private fun imageProxyToBase64(image: ImageProxy, maxDim: Int): String? {
+    return try {
+        val bitmap = image.toBitmap()
+        val rotation = image.imageInfo.rotationDegrees
+        val w = bitmap.width
+        val h = bitmap.height
+        val scale = maxDim.toFloat() / maxOf(w, h).toFloat()
+        val matrix = Matrix()
+        if (scale < 1f) matrix.postScale(scale, scale)
+        if (rotation != 0) matrix.postRotate(rotation.toFloat())
+        val out = if (scale < 1f || rotation != 0)
+            Bitmap.createBitmap(bitmap, 0, 0, w, h, matrix, true)
+        else bitmap
+        val stream = ByteArrayOutputStream()
+        out.compress(Bitmap.CompressFormat.JPEG, 70, stream)
+        Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+    } catch (e: Exception) {
+        Log.e("PoseTracker", "imageProxyToBase64 failed", e)
+        null
+    }
+}
+
+// Tolerant JSON extraction from the model's reply (strips markdown fences / prose).
+private fun parseAnalysis(raw: String): JSONObject? {
+    return try {
+        var s = raw.trim()
+        if (s.startsWith("```")) {
+            s = s.removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        }
+        val start = s.indexOf('{')
+        val end = s.lastIndexOf('}')
+        if (start >= 0 && end > start) s = s.substring(start, end + 1)
+        JSONObject(s)
+    } catch (e: Exception) {
+        Log.e("PoseTracker", "parseAnalysis failed: $raw", e)
+        null
+    }
+}
