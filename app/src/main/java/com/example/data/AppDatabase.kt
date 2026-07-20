@@ -14,9 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LeaderboardEntry::class,
         Badge::class,
         ProgramExercise::class,
-        WorkoutClass::class
+        WorkoutClass::class,
+        ChatMessageEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun badgeDao(): BadgeDao
     abstract fun programExerciseDao(): ProgramExerciseDao
     abstract fun workoutClassDao(): WorkoutClassDao
+    abstract fun chatMessageDao(): ChatMessageDao
 
     companion object {
         @Volatile
@@ -49,6 +51,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL, timestamp INTEGER NOT NULL)"
+                )
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN sets INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE workout_classes ADD COLUMN sets INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -56,7 +68,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ai_coach_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance

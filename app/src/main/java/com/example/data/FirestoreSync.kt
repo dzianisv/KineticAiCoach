@@ -93,6 +93,47 @@ class FirestoreSync {
         }
     }
 
+    suspend fun pushMessage(uid: String, message: ChatMessageEntity) {
+        if (uid.isBlank()) return
+        try {
+            withContext(Dispatchers.IO) {
+                Tasks.await(
+                    firestore.collection("users")
+                        .document(uid)
+                        .collection("messages")
+                        .document(message.id.toString())
+                        .set(messageToMap(message), SetOptions.merge())
+                )
+            }
+        } catch (e: Exception) {
+            Log.w("FirestoreSync", "pushMessage failed", e)
+        }
+    }
+
+    suspend fun pullMessages(uid: String): List<ChatMessageEntity> {
+        if (uid.isBlank()) return emptyList()
+        return try {
+            withContext(Dispatchers.IO) {
+                val snapshot = Tasks.await(
+                    firestore.collection("users")
+                        .document(uid)
+                        .collection("messages")
+                        .orderBy("timestamp")
+                        .get()
+                )
+                snapshot.documents.mapNotNull { doc ->
+                    val role = doc.getString("role") ?: return@mapNotNull null
+                    val content = doc.getString("content") ?: return@mapNotNull null
+                    val timestamp = (doc.get("timestamp") as? Number)?.toLong() ?: System.currentTimeMillis()
+                    ChatMessageEntity(id = 0, role = role, content = content, timestamp = timestamp)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("FirestoreSync", "pullMessages failed", e)
+            emptyList()
+        }
+    }
+
     suspend fun pullProfile(uid: String): UserProfile? {
         if (uid.isBlank()) return null
         return try {
@@ -140,6 +181,7 @@ class FirestoreSync {
         "exerciseName" to session.exerciseName,
         "durationSeconds" to session.durationSeconds,
         "reps" to session.reps,
+        "sets" to session.sets,
         "formScore" to session.formScore,
         "pointsEarned" to session.pointsEarned,
         "feedback" to session.feedback,
@@ -160,7 +202,14 @@ class FirestoreSync {
         "completedAt" to c.completedAt,
         "exerciseCount" to c.exerciseCount,
         "totalReps" to c.totalReps,
+        "sets" to c.sets,
         "avgFormScore" to c.avgFormScore,
         "totalPoints" to c.totalPoints
+    )
+
+    private fun messageToMap(message: ChatMessageEntity): Map<String, Any?> = mapOf(
+        "role" to message.role,
+        "content" to message.content,
+        "timestamp" to message.timestamp
     )
 }

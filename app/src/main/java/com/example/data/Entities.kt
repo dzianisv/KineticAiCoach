@@ -25,6 +25,7 @@ data class WorkoutSession(
     val exerciseName: String,
     val durationSeconds: Int,
     val reps: Int,
+    val sets: Int = 0,
     val formScore: Double,
     val pointsEarned: Int,
     val feedback: String,
@@ -50,6 +51,7 @@ data class WorkoutClass(
     val completedAt: Long,
     val exerciseCount: Int,
     val totalReps: Int,
+    val sets: Int = 0,
     val avgFormScore: Double,
     val totalPoints: Int
 )
@@ -69,4 +71,12 @@ data class Badge(
     val description: String,
     val iconName: String,
     val unlockedAt: Long? = null // Non-null if unlocked
+)
+
+@Entity(tableName = "chat_messages")
+data class ChatMessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val role: String, // "user" or "coach"
+    val content: String,
+    val timestamp: Long = System.currentTimeMillis()
 )
