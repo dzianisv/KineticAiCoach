@@ -111,7 +111,9 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     const ai = useVertexBackend ? new GoogleGenAI({
       vertexai: true,
       project: process.env.GCLOUD_PROJECT || "kinetic-ai-coach-50627",
-      location: process.env.VERTEX_LOCATION || "us-central1"
+      // gemini-3.5-flash is only served from the `global` Vertex location, so we
+      // default there. Overridable via VERTEX_LOCATION.
+      location: process.env.VERTEX_LOCATION || "global"
     }) : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Build contents: multimodal (image + text) when an image is supplied,
@@ -128,10 +130,10 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     if (systemPrompt) generationConfig.systemInstruction = systemPrompt;
     if (responseMimeType) generationConfig.responseMimeType = responseMimeType;
 
-    // Model is configurable via the GENAI_MODEL env var (defaulting to the fast,
-    // efficient gemini-2.5-flash) so it can be flipped (e.g. to gemini-3.5-flash)
-    // without a code change/redeploy of this function's source.
-    const modelName = process.env.GENAI_MODEL || "gemini-2.5-flash";
+    // Model is configurable via the GENAI_MODEL env var. Defaults to
+    // gemini-3.5-flash (served from the `global` Vertex location) — the model the
+    // PRD requires. Override GENAI_MODEL to flip without a source change.
+    const modelName = process.env.GENAI_MODEL || "gemini-3.5-flash";
     const response = await ai.models.generateContent({
       model: modelName,
       contents,
