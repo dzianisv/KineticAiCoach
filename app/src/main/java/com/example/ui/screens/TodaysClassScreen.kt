@@ -91,24 +91,11 @@ fun TodaysClassScreen(
     val currentExercise = exercises.getOrNull(currentIndex)
     val exerciseName = currentExercise?.name ?: "Workout"
 
-    // Permissions State (identical behaviour to PoseTrackerScreen)
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted -> hasCameraPermission = granted }
-    )
-    LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
+    // The class always runs in simulation mode (see isSimulationMode below), so
+    // the camera preview is never shown and no CAMERA permission is needed.
+    // Requesting it here previously popped a system permission dialog over the
+    // class, which could swallow taps on the finish button.
+    val hasCameraPermission = false
 
     // Per-exercise simulated workout state
     var repCount by remember { mutableIntStateOf(0) }
