@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
@@ -96,6 +97,7 @@ import java.util.Locale
 fun DashboardScreen(
     viewModel: MainViewModel,
     onStartWorkout: (String) -> Unit,
+    onStartClass: () -> Unit,
     onNavigateToOnboarding: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -244,7 +246,7 @@ fun DashboardScreen(
                 ) {
                     when (selectedTab) {
                         0 -> CoachTab(viewModel, onNavigateToOnboarding)
-                        1 -> WorkoutsTab(onStartWorkout)
+                        1 -> WorkoutsTab(onStartWorkout, onStartClass)
                         2 -> AnalyticsTab(viewModel)
                         3 -> LeaderboardTab(viewModel)
                     }
@@ -503,7 +505,7 @@ data class ExerciseItem(
 )
 
 @Composable
-fun WorkoutsTab(onStartWorkout: (String) -> Unit) {
+fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
     val exercises = listOf(
         ExerciseItem("Squats", "Quads, Glutes & Core", "Classic squat. Keep weight in heels, descend with thighs parallel, maintain a tall back alignment.", 4),
         ExerciseItem("Pushups", "Chest, Shoulders & Triceps", "Maintain strict diagonal plank. Bend elbows to 90 degrees, lowering chest close to ground.", 3),
@@ -515,6 +517,23 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // PRD v2 (Lane B): prominent "Start today's class" CTA — launches the multi-exercise class.
+        Button(
+            onClick = onStartClass,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .testTag("start_class_button"),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Start today's class", fontSize = 17.sp, fontWeight = FontWeight.Black, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Text("CHOOSE A WORKOUT", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
         Text("AI Pose-Tracker Active", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
@@ -827,11 +846,70 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                 }
             }
         }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // PRD v2 (Lane B): class-level history — past "today's class" sessions.
+        ClassHistorySection(viewModel)
+
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
-// ==================== 4. LEADERBOARD TAB ====================
+// PRD v2 (Lane B): shows completed multi-exercise classes from viewModel.workoutClasses.
+@Composable
+fun ClassHistorySection(viewModel: MainViewModel) {
+    val classes by viewModel.workoutClasses.collectAsState()
+    val sdf = SimpleDateFormat("MMM dd, yyyy - HH:mm", Locale.getDefault())
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("class_history"),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("CLASS HISTORY", fontSize = 12.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (classes.isEmpty()) {
+                Text(
+                    "No classes completed yet. Tap \"Start today's class\" to begin!",
+                    fontSize = 13.sp,
+                    color = Color(0xFF64748B)
+                )
+            } else {
+                classes.take(10).forEach { wc ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "${wc.exerciseCount} exercises · ${wc.totalReps} reps",
+                                fontSize = 14.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(sdf.format(Date(wc.completedAt)), fontSize = 11.sp, color = Color(0xFF64748B))
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("${wc.totalPoints} pts", fontSize = 14.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.Black)
+                            Text(
+                                "Form ${wc.avgFormScore.toInt()}%",
+                                fontSize = 11.sp,
+                                color = if (wc.avgFormScore >= 90.0) Color(0xFF10B981) else Color(0xFFF59E0B)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 fun LeaderboardTab(viewModel: MainViewModel) {
     val leaderboard by viewModel.leaderboard.collectAsState()
