@@ -4,6 +4,28 @@ This is a **prep checklist**, not an actual store upload. It documents the concr
 take KineticAiCoach (`com.aistudio.aicoach.vtzrkm`) from a debug build to a signed, minified
 release artifact ready for the Play Console.
 
+## 0. Google Sign-In: register signing SHA certificates (REQUIRED)
+
+Firebase Google Sign-In **fails** (sign-in never completes / `DEVELOPER_ERROR`) unless the
+app's signing certificate SHA-1 is registered on the Firebase Android app. The debug key
+(`debug.keystore`, SHA-1 `77:76:D5:8F:27:E1:DF:F2:C5:64:4D:60:AB:F0:7F:10:0B:C0:A7:D7`) is
+already registered. For release you must **also** register the Play App Signing SHA-1 (and
+SHA-256), available from **Play Console → Setup → App integrity** after the first AAB upload.
+
+Register programmatically (no console needed) with an owner token:
+
+```bash
+TOKEN=$(gcloud auth print-access-token --account=vibeteaichnologies@gmail.com)
+PROJ=kinetic-ai-coach-50627
+APP="projects/$PROJ/androidApps/1:169391482464:android:c92b0f444eb842caf04505"
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "X-Goog-User-Project: $PROJ" \
+  -H "Content-Type: application/json" "https://firebaserules.googleapis.com/../$APP/sha" \
+  -d '{"shaHash":"<PLAY_APP_SIGNING_SHA1_lowercase_no_colons>","certType":"SHA_1"}'
+```
+
+After registering, download a fresh `google-services.json` (Firebase console or the
+`.../androidApps/<id>/config` API) so it contains the matching Android OAuth client.
+
 ## 1. Generate the upload keystore (one time)
 
 ```bash
