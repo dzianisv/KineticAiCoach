@@ -92,6 +92,10 @@ import com.example.ui.ChatAttachmentPreview
 import com.example.ui.ChatMessage
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
+import com.example.ui.theme.PremiumGrayBorder
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
+import com.example.ui.theme.SilverSilver
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -113,7 +117,7 @@ fun DashboardScreen(
             if (isWideScreen) {
                 // Adaptive layout: Sidebar navigation rail for Expanded tablet/ChromeOS displays
                 NavigationRail(
-                    containerColor = Color(0xFF18181B),
+                    containerColor = PremiumGrayDark,
                     header = {
                         IconButton(onClick = onNavigateToOnboarding) {
                             Icon(Icons.Default.Settings, contentDescription = "Edit Profile", tint = Color.White)
@@ -130,8 +134,8 @@ fun DashboardScreen(
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
-                            unselectedIconColor = Color(0xFF71717A),
-                            indicatorColor = Color(0xFF27272A)
+                            unselectedIconColor = PremiumGrayMedium,
+                            indicatorColor = PremiumGrayBorder
                         )
                     )
                     NavigationRailItem(
@@ -142,8 +146,8 @@ fun DashboardScreen(
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
-                            unselectedIconColor = Color(0xFF71717A),
-                            indicatorColor = Color(0xFF27272A)
+                            unselectedIconColor = PremiumGrayMedium,
+                            indicatorColor = PremiumGrayBorder
                         )
                     )
                     NavigationRailItem(
@@ -154,8 +158,8 @@ fun DashboardScreen(
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
-                            unselectedIconColor = Color(0xFF71717A),
-                            indicatorColor = Color(0xFF27272A)
+                            unselectedIconColor = PremiumGrayMedium,
+                            indicatorColor = PremiumGrayBorder
                         )
                     )
                     NavigationRailItem(
@@ -166,8 +170,8 @@ fun DashboardScreen(
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
-                            unselectedIconColor = Color(0xFF71717A),
-                            indicatorColor = Color(0xFF27272A)
+                            unselectedIconColor = PremiumGrayMedium,
+                            indicatorColor = PremiumGrayBorder
                         )
                     )
                     // GAP G7: About/Help tab (index 4)
@@ -179,8 +183,8 @@ fun DashboardScreen(
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = Color.White,
-                            unselectedIconColor = Color(0xFF71717A),
-                            indicatorColor = Color(0xFF27272A)
+                            unselectedIconColor = PremiumGrayMedium,
+                            indicatorColor = PremiumGrayBorder
                         )
                     )
                 }
@@ -192,7 +196,7 @@ fun DashboardScreen(
                 bottomBar = {
                     if (!isWideScreen) {
                         NavigationBar(
-                            containerColor = Color(0xFF18181B),
+                            containerColor = PremiumGrayDark,
                             tonalElevation = 8.dp
                         ) {
                             NavigationBarItem(
@@ -203,9 +207,9 @@ fun DashboardScreen(
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = Color.White,
-                                    unselectedIconColor = Color(0xFF71717A),
-                                    unselectedTextColor = Color(0xFF71717A),
-                                    indicatorColor = Color(0xFF27272A)
+                                    unselectedIconColor = PremiumGrayMedium,
+                                    unselectedTextColor = PremiumGrayMedium,
+                                    indicatorColor = PremiumGrayBorder
                                 ),
                                 modifier = Modifier.testTag("tab_coach")
                             )
@@ -217,9 +221,9 @@ fun DashboardScreen(
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = Color.White,
-                                    unselectedIconColor = Color(0xFF71717A),
-                                    unselectedTextColor = Color(0xFF71717A),
-                                    indicatorColor = Color(0xFF27272A)
+                                    unselectedIconColor = PremiumGrayMedium,
+                                    unselectedTextColor = PremiumGrayMedium,
+                                    indicatorColor = PremiumGrayBorder
                                 ),
                                 modifier = Modifier.testTag("tab_workouts")
                             )
@@ -231,9 +235,9 @@ fun DashboardScreen(
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = Color.White,
-                                    unselectedIconColor = Color(0xFF71717A),
-                                    unselectedTextColor = Color(0xFF71717A),
-                                    indicatorColor = Color(0xFF27272A)
+                                    unselectedIconColor = PremiumGrayMedium,
+                                    unselectedTextColor = PremiumGrayMedium,
+                                    indicatorColor = PremiumGrayBorder
                                 ),
                                 modifier = Modifier.testTag("tab_analytics")
                             )
@@ -245,9 +249,9 @@ fun DashboardScreen(
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = Color.White,
-                                    unselectedIconColor = Color(0xFF71717A),
-                                    unselectedTextColor = Color(0xFF71717A),
-                                    indicatorColor = Color(0xFF27272A)
+                                    unselectedIconColor = PremiumGrayMedium,
+                                    unselectedTextColor = PremiumGrayMedium,
+                                    indicatorColor = PremiumGrayBorder
                                 ),
                                 modifier = Modifier.testTag("tab_leaderboard")
                             )
@@ -260,9 +264,9 @@ fun DashboardScreen(
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = Color.White,
-                                    unselectedIconColor = Color(0xFF71717A),
-                                    unselectedTextColor = Color(0xFF71717A),
-                                    indicatorColor = Color(0xFF27272A)
+                                    unselectedIconColor = PremiumGrayMedium,
+                                    unselectedTextColor = PremiumGrayMedium,
+                                    indicatorColor = PremiumGrayBorder
                                 ),
                                 modifier = Modifier.testTag("tab_about")
                             )
@@ -316,9 +320,9 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B))
+            border = androidx.compose.foundation.BorderStroke(1.dp, PremiumGrayDark)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -327,14 +331,14 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = "AI Program", tint = Color(0xFFF59E0B), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.AutoAwesome, contentDescription = "AI Program", tint = Color.White, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("YOUR AI FIT PROGRAM", fontSize = 12.sp, color = Color(0xFFF59E0B), fontWeight = FontWeight.Bold)
+                        Text("YOUR AI FIT PROGRAM", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
                             onClick = onEditProfile,
-                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E293B)),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = PremiumGrayDark),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(Icons.Default.Person, contentDescription = "Edit Stats", tint = Color.White, modifier = Modifier.size(16.dp))
@@ -342,7 +346,7 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(
                             onClick = { viewModel.signOutUser() },
-                            colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E293B)),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = PremiumGrayDark),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = "Sign Out", tint = Color.White, modifier = Modifier.size(16.dp))
@@ -358,9 +362,9 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF2563EB), modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Coach Iron is crafting schedule...", fontSize = 13.sp, color = Color(0xFF94A3B8))
+                        Text("Coach Iron is crafting schedule...", fontSize = 13.sp, color = PremiumGrayMedium)
                     }
                 } else {
                     val programText = profile?.workoutProgram
@@ -368,7 +372,7 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         Text(
                             text = programText,
                             fontSize = 13.sp,
-                            color = Color(0xFFCBD5E1),
+                            color = Color.White,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Medium
@@ -376,7 +380,7 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { viewModel.generateCustomProgram() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                            colors = ButtonDefaults.buttonColors(containerColor = PremiumGrayDark),
                             modifier = Modifier.align(Alignment.End),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -386,16 +390,16 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         Text(
                             text = "No customized program yet. Click setup to generate classes on your weekly schedule!",
                             fontSize = 13.sp,
-                            color = Color(0xFF94A3B8)
+                            color = PremiumGrayMedium
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { viewModel.generateCustomProgram() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Generate Program", fontSize = 13.sp, color = Color.White)
+                            Text("Generate Program", fontSize = 13.sp, color = Color.Black)
                         }
                     }
                 }
@@ -418,7 +422,7 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                 ) {
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isCoach) Color(0xFF1E293B) else Color(0xFF2563EB)
+                            containerColor = if (isCoach) PremiumGrayDark else PremiumGrayBorder
                         ),
                         shape = RoundedCornerShape(
                             topStart = 16.dp,
@@ -453,11 +457,11 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         horizontalArrangement = Arrangement.Start
                     ) {
                         CircularProgressIndicator(
-                            color = Color(0xFF38BDF8),
+                            color = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Coach is typing...", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Text("Coach is typing...", fontSize = 12.sp, color = PremiumGrayMedium)
                     }
                 }
             }
@@ -474,14 +478,14 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
             items(suggestionChips) { chip ->
                 Card(
                     modifier = Modifier.clickable { viewModel.sendMessage(chip) },
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                     shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PremiumGrayBorder)
                 ) {
                     Text(
                         chip,
                         fontSize = 11.sp,
-                        color = Color(0xFF38BDF8),
+                        color = Color.White,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         fontWeight = FontWeight.Bold
                     )
@@ -508,17 +512,17 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
             OutlinedTextField(
                 value = inputMsg,
                 onValueChange = { inputMsg = it },
-                placeholder = { Text("Ask Coach Iron...", color = Color(0xFF64748B)) },
+                placeholder = { Text("Ask Coach Iron...", color = PremiumGrayMedium) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("chat_input"),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color(0xFF2563EB),
-                    unfocusedBorderColor = Color(0xFF334155),
-                    focusedContainerColor = Color(0xFF0F172A),
-                    unfocusedContainerColor = Color(0xFF0F172A)
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = PremiumGrayBorder,
+                    focusedContainerColor = PremiumGrayDark,
+                    unfocusedContainerColor = PremiumGrayDark
                 ),
                 singleLine = true,
                 shape = RoundedCornerShape(24.dp)
@@ -536,9 +540,9 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .testTag("chat_send_button"),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF2563EB))
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White)
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send Message", tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Send, contentDescription = "Send Message", tint = Color.Black, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -572,17 +576,17 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
                 .fillMaxWidth()
                 .height(60.dp)
                 .testTag("start_class_button"),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
             shape = RoundedCornerShape(14.dp)
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Start today's class", fontSize = 17.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Text("Start today's class", fontSize = 17.sp, fontWeight = FontWeight.Black, color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text("CHOOSE A WORKOUT", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+        Text("CHOOSE A WORKOUT", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
         Text("AI Pose-Tracker Active", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -594,9 +598,9 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
             items(exercises) { exercise ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PremiumGrayDark)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -606,11 +610,11 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(exercise.name.uppercase(), fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Black)
-                                Text(exercise.muscleGroup, fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                Text(exercise.muscleGroup, fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                             }
 
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
@@ -628,7 +632,7 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
                         Text(
                             exercise.description,
                             fontSize = 13.sp,
-                            color = Color(0xFF94A3B8),
+                            color = PremiumGrayMedium,
                             lineHeight = 18.sp
                         )
 
@@ -655,12 +659,12 @@ fun WorkoutsTab(onStartWorkout: (String) -> Unit, onStartClass: () -> Unit) {
                                 .fillMaxWidth()
                                 .height(48.dp)
                                 .testTag("start_workout_card_${exercise.name}"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = Color.Black)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Start AI Tracking Session", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Start AI Tracking Session", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
                 }
@@ -686,7 +690,7 @@ fun AnalyticsTab(viewModel: MainViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("PERFORMANCE ANALYTICS", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+        Text("PERFORMANCE ANALYTICS", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
         Text("Historical Progress", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -698,14 +702,14 @@ fun AnalyticsTab(viewModel: MainViewModel) {
         ) {
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = Color(0xFF22C55E), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("SESSIONS", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                        Text("SESSIONS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalWorkouts", fontSize = 22.sp, color = Color.White, fontWeight = FontWeight.Black)
@@ -714,14 +718,14 @@ fun AnalyticsTab(viewModel: MainViewModel) {
 
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("STREAK", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                        Text("STREAK", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$activeStreak Days", fontSize = 22.sp, color = Color.White, fontWeight = FontWeight.Black)
@@ -730,14 +734,14 @@ fun AnalyticsTab(viewModel: MainViewModel) {
 
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("TOTAL XP", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                        Text("TOTAL XP", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalPoints", fontSize = 22.sp, color = Color.White, fontWeight = FontWeight.Black)
@@ -750,11 +754,11 @@ fun AnalyticsTab(viewModel: MainViewModel) {
         // Custom drawn graph 1: Reps Progress Chart
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("REPS GROWTH (LATEST SESSIONS)", fontSize = 12.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                Text("REPS GROWTH (LATEST SESSIONS)", fontSize = 12.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Box(
@@ -777,8 +781,8 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                         val segmentW = (w - 2 * padding) / (repList.size - 1).coerceAtLeast(1)
 
                         // Draw Grid & Axes
-                        drawLine(Color(0xFF334155), Offset(padding, h - padding), Offset(w - padding, h - padding), 3f)
-                        drawLine(Color(0xFF334155), Offset(padding, padding), Offset(padding, h - padding), 3f)
+                        drawLine(PremiumGrayBorder, Offset(padding, h - padding), Offset(w - padding, h - padding), 3f)
+                        drawLine(PremiumGrayBorder, Offset(padding, padding), Offset(padding, h - padding), 3f)
 
                         // Connect points path
                         val points = repList.mapIndexed { idx, value ->
@@ -796,10 +800,10 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                             }
                         }
 
-                        drawPath(strokePath, color = Color(0xFF2563EB), style = Stroke(width = 6f))
+                        drawPath(strokePath, color = Color.White, style = Stroke(width = 6f))
 
                         points.forEach { pt ->
-                            drawCircle(Color(0xFF38BDF8), radius = 6f, center = pt)
+                            drawCircle(Color.White.copy(alpha = 0.5f), radius = 6f, center = pt)
                             drawCircle(Color.White, radius = 3f, center = pt)
                         }
                     }
@@ -812,11 +816,11 @@ fun AnalyticsTab(viewModel: MainViewModel) {
         // Custom drawn graph 2: Form Accuracy Chart
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("FORM SAFETY ACCURACY (AVERAGE: ${averageAccuracy.toInt()}%)", fontSize = 12.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                Text("FORM SAFETY ACCURACY (AVERAGE: ${averageAccuracy.toInt()}%)", fontSize = 12.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Box(
@@ -839,7 +843,7 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                         val barW = spaceW * 0.6f
 
                         // Draw floor axis
-                        drawLine(Color(0xFF334155), Offset(padding, h - padding), Offset(w - padding, h - padding), 3f)
+                        drawLine(PremiumGrayBorder, Offset(padding, h - padding), Offset(w - padding, h - padding), 3f)
 
                         accuracyList.forEachIndexed { idx, score ->
                             val bx = padding + idx * spaceW + (spaceW - barW) / 2
@@ -847,7 +851,7 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                             val by = h - padding - barH
 
                             drawRect(
-                                color = if (score >= 90f) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                color = if (score >= 90f) Color.White else Color.White.copy(alpha = 0.45f),
                                 topLeft = Offset(bx, by),
                                 size = androidx.compose.ui.geometry.Size(barW, barH)
                             )
@@ -862,15 +866,15 @@ fun AnalyticsTab(viewModel: MainViewModel) {
         // Workout Log list
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("HISTORICAL EXERCISE LOGS", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                Text("HISTORICAL EXERCISE LOGS", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (sessions.isEmpty()) {
-                    Text("No sessions recorded yet. Start training to log history!", fontSize = 13.sp, color = Color(0xFF64748B))
+                    Text("No sessions recorded yet. Start training to log history!", fontSize = 13.sp, color = PremiumGrayMedium)
                 } else {
                     val sdf = SimpleDateFormat("MMM dd, yyyy - HH:mm", Locale.getDefault())
                     sessions.take(5).forEach { session ->
@@ -883,11 +887,11 @@ fun AnalyticsTab(viewModel: MainViewModel) {
                         ) {
                             Column {
                                 Text(session.exerciseName, fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                                Text(sdf.format(Date(session.timestamp)), fontSize = 11.sp, color = Color(0xFF64748B))
+                                Text(sdf.format(Date(session.timestamp)), fontSize = 11.sp, color = PremiumGrayMedium)
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("${session.reps} Reps", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Black)
-                                Text("Score: ${session.formScore.toInt()}%", fontSize = 11.sp, color = if (session.formScore >= 90.0) Color(0xFF10B981) else Color(0xFFF59E0B))
+                                Text("Score: ${session.formScore.toInt()}%", fontSize = 11.sp, color = if (session.formScore >= 90.0) Color.White else PremiumGrayMedium)
                             }
                         }
                     }
@@ -913,18 +917,18 @@ fun ClassHistorySection(viewModel: MainViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag("class_history"),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("CLASS HISTORY", fontSize = 12.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+            Text("CLASS HISTORY", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
 
             if (classes.isEmpty()) {
                 Text(
                     "No classes completed yet. Tap \"Start today's class\" to begin!",
                     fontSize = 13.sp,
-                    color = Color(0xFF64748B)
+                    color = PremiumGrayMedium
                 )
             } else {
                 classes.take(10).forEach { wc ->
@@ -942,14 +946,14 @@ fun ClassHistorySection(viewModel: MainViewModel) {
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(sdf.format(Date(wc.completedAt)), fontSize = 11.sp, color = Color(0xFF64748B))
+                            Text(sdf.format(Date(wc.completedAt)), fontSize = 11.sp, color = PremiumGrayMedium)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("${wc.totalPoints} pts", fontSize = 14.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.Black)
+                            Text("${wc.totalPoints} pts", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Black)
                             Text(
                                 "Form ${wc.avgFormScore.toInt()}%",
                                 fontSize = 11.sp,
-                                color = if (wc.avgFormScore >= 90.0) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                color = if (wc.avgFormScore >= 90.0) Color.White else PremiumGrayMedium
                             )
                         }
                     }
@@ -970,14 +974,14 @@ fun LeaderboardTab(viewModel: MainViewModel) {
             .verticalScroll(rememberScrollState())
     ) {
         // Leaderboard Section
-        Text("ACTIVE COMMUNITY CHALLENGE", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+        Text("ACTIVE COMMUNITY CHALLENGE", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
         Text("Global Leaderboard", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -987,7 +991,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = if (isUser) Color(0xFF2563EB).copy(alpha = 0.2f) else Color.Transparent,
+                                color = if (isUser) Color.White.copy(alpha = 0.12f) else Color.Transparent,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -998,7 +1002,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                             Text(
                                 text = "#${idx + 1}",
                                 fontSize = 14.sp,
-                                color = if (idx == 0) Color(0xFFF59E0B) else Color(0xFF94A3B8),
+                                color = if (idx == 0) Color.White else PremiumGrayMedium,
                                 fontWeight = FontWeight.Black,
                                 modifier = Modifier.width(36.dp)
                             )
@@ -1006,7 +1010,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                             Text(
                                 text = competitor.name,
                                 fontSize = 14.sp,
-                                color = if (isUser) Color(0xFF38BDF8) else Color.White,
+                                color = Color.White,
                                 fontWeight = if (isUser) FontWeight.Black else FontWeight.Bold
                             )
                         }
@@ -1014,7 +1018,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                         Text(
                             text = "${competitor.points} XP",
                             fontSize = 14.sp,
-                            color = if (isUser) Color(0xFF38BDF8) else Color(0xFFCBD5E1),
+                            color = if (isUser) Color.White else SilverSilver,
                             fontWeight = FontWeight.Black
                         )
                     }
@@ -1025,7 +1029,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Badges Section
-        Text("MOTIVATIONAL MILESTONES", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+        Text("MOTIVATIONAL MILESTONES", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
         Text("Your Earned Badges", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1039,12 +1043,12 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isUnlocked) Color(0xFF1E293B) else Color(0xFF0F172A).copy(alpha = 0.5f)
+                        containerColor = if (isUnlocked) PremiumGrayDark else PremiumGrayDark.copy(alpha = 0.5f)
                     ),
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        color = if (isUnlocked) Color(0xFF2563EB) else Color(0xFF334155).copy(alpha = 0.5f)
+                        color = if (isUnlocked) Color.White else PremiumGrayBorder.copy(alpha = 0.5f)
                     )
                 ) {
                     Row(
@@ -1058,7 +1062,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                             modifier = Modifier
                                 .size(48.dp)
                                 .background(
-                                    color = if (isUnlocked) Color(0xFF2563EB).copy(alpha = 0.2f) else Color(0xFF1E293B),
+                                    color = if (isUnlocked) Color.White.copy(alpha = 0.15f) else PremiumGrayDark,
                                     shape = CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -1066,7 +1070,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                             Icon(
                                 imageVector = if (isUnlocked) Icons.Default.EmojiEvents else Icons.Default.Lock,
                                 contentDescription = badge.title,
-                                tint = if (isUnlocked) Color(0xFFF59E0B) else Color(0xFF475569),
+                                tint = if (isUnlocked) Color.White else PremiumGrayMedium,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -1077,13 +1081,13 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                             Text(
                                 badge.title,
                                 fontSize = 15.sp,
-                                color = if (isUnlocked) Color.White else Color(0xFF64748B),
+                                color = if (isUnlocked) Color.White else PremiumGrayMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 badge.description,
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8)
+                                color = PremiumGrayMedium
                             )
 
                             if (isUnlocked) {
@@ -1091,7 +1095,7 @@ fun LeaderboardTab(viewModel: MainViewModel) {
                                 Text(
                                     "Unlocked on ${sdf.format(Date(badge.unlockedAt!!))}",
                                     fontSize = 10.sp,
-                                    color = Color(0xFF10B981),
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )

@@ -36,6 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.MainViewModel
+import com.example.ui.theme.ObsidianBlack
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 import kotlinx.coroutines.delay
 
 /**
@@ -67,13 +70,13 @@ fun ClassResultsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF020617))
+            .background(ObsidianBlack)
             .padding(20.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.height(24.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFFACC15))
+                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "  Class Complete!",
@@ -85,7 +88,7 @@ fun ClassResultsScreen(
             Text(
                 "Class #$classId — great work across ${results.size} exercises.",
                 fontSize = 13.sp,
-                color = Color(0xFF94A3B8)
+                color = PremiumGrayMedium
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -94,7 +97,7 @@ fun ClassResultsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -148,10 +151,10 @@ fun ClassResultsScreen(
                     .fillMaxWidth()
                     .height(56.dp)
                     .testTag("results_done"),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Done", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Done", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
     }
@@ -167,8 +170,8 @@ private fun ResultRow(
     isTotal: Boolean = false
 ) {
     val color = when {
-        isHeader -> Color(0xFF94A3B8)
-        isTotal -> Color(0xFF22C55E)
+        isHeader -> PremiumGrayMedium
+        isTotal -> Color.White
         else -> Color.White
     }
     val weight = if (isHeader || isTotal) FontWeight.Black else FontWeight.Medium

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import com.example.ui.theme.PremiumGrayDark
 
 /**
  * Paperclip/"+" button shown next to the chat input. Tapping it opens a small
@@ -87,7 +88,7 @@ fun AttachmentPickerButton(
             modifier = Modifier
                 .size(48.dp)
                 .testTag("chat_attach_button"),
-            colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E293B))
+            colors = IconButtonDefaults.iconButtonColors(containerColor = PremiumGrayDark)
         ) {
             Icon(Icons.Default.AttachFile, contentDescription = "Attach", tint = Color.White, modifier = Modifier.size(20.dp))
         }
@@ -157,11 +158,11 @@ fun ChatAttachmentPreview(message: ChatMessage, modifier: Modifier = Modifier) {
         AttachmentType.FILE -> {
             Row(
                 modifier = modifier
-                    .background(Color(0xFF0F172A), RoundedCornerShape(10.dp))
+                    .background(PremiumGrayDark, RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Description, contentDescription = "File", tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Description, contentDescription = "File", tint = Color.White, modifier = Modifier.size(18.dp))
                 Text(
                     text = message.attachmentName ?: "Attached file",
                     fontSize = 12.sp,

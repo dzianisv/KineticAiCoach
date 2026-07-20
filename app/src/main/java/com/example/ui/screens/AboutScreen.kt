@@ -32,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
+import com.example.ui.theme.PremiumGrayBorder
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 
 // ==================== ABOUT TAB (GAP G7 - Help/About) ====================
 // Reachable from Dashboard bottom nav (tab index 4). Shows app identity, the
@@ -47,7 +50,7 @@ fun AboutTab() {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("HELP & INFO", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+        Text("HELP & INFO", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
         Text("About", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Black)
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -55,12 +58,12 @@ fun AboutTab() {
         // App identity card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF38BDF8))
+                    Icon(Icons.Default.Info, contentDescription = null, tint = Color.White)
                     Text(
                         text = "Kinetic AI Coach",
                         fontSize = 18.sp,
@@ -73,14 +76,14 @@ fun AboutTab() {
                 Text(
                     text = "Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
                     fontSize = 13.sp,
-                    color = Color(0xFF94A3B8)
+                    color = PremiumGrayMedium
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "Your personal AI-powered fitness coach — real-time form correction, " +
                         "adaptive workout programs, and progress tracking, all on your device.",
                     fontSize = 13.sp,
-                    color = Color(0xFF94A3B8)
+                    color = PremiumGrayMedium
                 )
             }
         }
@@ -90,12 +93,12 @@ fun AboutTab() {
         // AI model disclosure card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFFF59E0B))
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White)
                     Text(
                         text = "AI Model",
                         fontSize = 16.sp,
@@ -108,7 +111,7 @@ fun AboutTab() {
                 Text(
                     text = "AI model used for analysis: gemini-3.5-flash (Google Vertex AI)",
                     fontSize = 13.sp,
-                    color = Color(0xFF94A3B8)
+                    color = PremiumGrayMedium
                 )
             }
         }
@@ -118,7 +121,7 @@ fun AboutTab() {
         // Feedback / support card — tappable mailto: link
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -132,18 +135,18 @@ fun AboutTab() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1E293B), shape = RoundedCornerShape(10.dp))
+                        .background(PremiumGrayBorder, shape = RoundedCornerShape(10.dp))
                         .clickable { uriHandler.openUri("mailto:$supportEmail") }
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Email, contentDescription = "Email support", tint = Color(0xFF38BDF8))
+                        Icon(Icons.Default.Email, contentDescription = "Email support", tint = Color.White)
                         Text(
                             text = supportEmail,
                             fontSize = 14.sp,
-                            color = Color(0xFF38BDF8),
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 10.dp)
                         )
@@ -157,17 +160,17 @@ fun AboutTab() {
         // Privacy note
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
             shape = RoundedCornerShape(16.dp)
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = Color(0xFF94A3B8))
+                Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = PremiumGrayMedium)
                 Text(
                     text = "Your workout video is processed for pose analysis and is not shared with " +
                         "third parties beyond what's required to power AI coaching. Contact support " +
                         "for privacy questions.",
                     fontSize = 12.sp,
-                    color = Color(0xFF94A3B8),
+                    color = PremiumGrayMedium,
                     modifier = Modifier.padding(start = 10.dp)
                 )
             }

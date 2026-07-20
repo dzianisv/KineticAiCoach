@@ -55,6 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
+import com.example.ui.theme.ObsidianBlack
+import com.example.ui.theme.PremiumGrayDark
+import com.example.ui.theme.PremiumGrayMedium
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -121,7 +124,7 @@ fun TodaysClassScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF020617))
+            .background(ObsidianBlack)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -137,7 +140,7 @@ fun TodaysClassScreen(
             Text(
                 text = "HOW TO: ${exerciseName.uppercase()}",
                 fontSize = 13.sp,
-                color = Color(0xFF38BDF8),
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -158,7 +161,7 @@ fun TodaysClassScreen(
             val scanY = 60f + (size.height - 120f - 260.dp.toPx()) * laserY
             drawLine(
                 brush = Brush.horizontalGradient(
-                    colors = listOf(Color.Transparent, Color(0xFF00F5FF).copy(alpha = 0.8f), Color.Transparent)
+                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.8f), Color.Transparent)
                 ),
                 start = Offset(60f, scanY),
                 end = Offset(size.width - 60f, scanY),
@@ -184,14 +187,14 @@ fun TodaysClassScreen(
                 .fillMaxWidth()
                 .padding(top = 16.dp, start = 72.dp, end = 16.dp)
                 .align(Alignment.TopCenter),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.9f)),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark.copy(alpha = 0.9f)),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text(
                     text = "Exercise ${currentIndex + 1} of ${exercises.size}",
                     fontSize = 11.sp,
-                    color = Color(0xFF38BDF8),
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -207,22 +210,22 @@ fun TodaysClassScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("TIME", fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                        Text("TIME", fontSize = 9.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                         Text(
                             text = String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60),
                             fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Black
                         )
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("REPS", fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                        Text("$repCount", fontSize = 20.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.Black)
+                        Text("REPS", fontSize = 9.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                        Text("$repCount", fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Black)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("FORM", fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                        Text("FORM", fontSize = 9.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
                         Text(
                             text = String.format("%.0f%%", averageFormScore),
                             fontSize = 16.sp,
-                            color = if (averageFormScore >= 90.0) Color(0xFF10B981) else Color(0xFFF59E0B),
+                            color = Color.White,
                             fontWeight = FontWeight.Black
                         )
                     }
@@ -237,14 +240,14 @@ fun TodaysClassScreen(
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0xFF020617).copy(alpha = 0.95f), Color(0xFF020617))
+                        colors = listOf(Color.Transparent, ObsidianBlack.copy(alpha = 0.95f), ObsidianBlack)
                     )
                 )
                 .padding(24.dp)
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B).copy(alpha = 0.9f)),
+                colors = CardDefaults.cardColors(containerColor = PremiumGrayDark.copy(alpha = 0.9f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
@@ -256,7 +259,7 @@ fun TodaysClassScreen(
                     Icon(
                         imageVector = if (currentCritique.contains("Warning")) Icons.Default.Info else Icons.Default.Mic,
                         contentDescription = "Critique",
-                        tint = if (currentCritique.contains("Warning")) Color(0xFFEF4444) else Color(0xFF38BDF8),
+                        tint = if (currentCritique.contains("Warning")) Color(0xFFEF4444) else Color.White,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
@@ -296,21 +299,21 @@ fun TodaysClassScreen(
                     .height(56.dp)
                     .testTag("next_exercise"),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isLast) Color(0xFF10B981) else Color(0xFF2563EB)
+                    containerColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
                     imageVector = if (isLast) Icons.Default.PlayArrow else Icons.Default.SkipNext,
                     contentDescription = null,
-                    tint = Color.White
+                    tint = Color.Black
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = if (isLast) "Set done — Finish class" else "Set done — Next exercise",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.Black
                 )
             }
         }
