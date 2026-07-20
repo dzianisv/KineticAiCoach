@@ -2,6 +2,8 @@ package com.example.network
 
 import android.util.Log
 import com.example.BuildConfig
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.auth.FirebaseAuth
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import okhttp3.OkHttpClient
@@ -69,7 +71,7 @@ interface FirebaseProxyService {
 }
 
 interface GeminiApiService {
-    @POST("v1beta/models/gemini-3.5-flash:generateContent")
+    @POST("v1beta/models/gemini-2.5-flash:generateContent")
     suspend fun generateContent(
         @Query("key") apiKey: String,
         @Body request: GenerateContentRequest
@@ -113,19 +115,31 @@ object RetrofitClient {
         // Try calling the Firebase Cloud Function Proxy first if configured
         val proxy = proxyService
         if (proxy != null) {
-            Log.d("GeminiApiClient", "Routing request securely through Firebase Cloud Function Proxy...")
-            try {
-                // In production, we retrieve the active Google or Firebase Auth ID Token.
-                // Here we generate a mock valid ID Token containing user identifiers for demonstration/verification.
-                val authHeader = "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6Im1vY2tfZ29vZ2xlX2F1dGgifQ.eyJzdWIiOiJkendlbmlzdnYiLCJlbWFpbCI6ImR6aWFuaXN2dkBnbWFpbC5jb20iLCJuYW1lIjoiRHppYW5pcyIsImV4cCI6NDA3MDkwODgwMH0.mock_signature"
-                
-                val response = proxy.callProxy(
-                    authHeader = authHeader,
-                    request = FirebaseProxyRequest(prompt = prompt, systemPrompt = systemPrompt)
-                )
-                return response.text
-            } catch (proxyError: Exception) {
-                Log.e("GeminiApiClient", "Firebase Cloud Function Proxy failed, falling back to direct API connection.", proxyError)
+            val user = FirebaseAuth.getInstance().currentUser
+            val idToken = user?.let {
+                try {
+                    Tasks.await(it.getIdToken(false)).token
+                } catch (e: Exception) {
+                    Log.e("GeminiApiClient", "Failed to fetch Firebase ID token", e)
+                    null
+                }
+            }
+
+            if (idToken != null) {
+                Log.d("GeminiApiClient", "Routing request securely through Firebase Cloud Function Proxy...")
+                try {
+                    val authHeader = "Bearer $idToken"
+
+                    val response = proxy.callProxy(
+                        authHeader = authHeader,
+                        request = FirebaseProxyRequest(prompt = prompt, systemPrompt = systemPrompt)
+                    )
+                    return response.text
+                } catch (proxyError: Exception) {
+                    Log.e("GeminiApiClient", "Firebase Cloud Function Proxy failed, falling back to direct API connection.", proxyError)
+                }
+            } else {
+                Log.w("GeminiApiClient", "No authenticated Firebase user / ID token available; skipping proxy and using direct API.")
             }
         }
 
