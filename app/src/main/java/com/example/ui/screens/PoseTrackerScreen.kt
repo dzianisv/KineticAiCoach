@@ -88,15 +88,16 @@ import androidx.core.content.ContextCompat
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
 import com.example.network.RetrofitClient
+import com.example.vision.PoseSkeleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
 
 @Composable
 fun PoseTrackerScreen(
@@ -141,24 +142,53 @@ fun PoseTrackerScreen(
     // Workout Tracker states
     var isWorkoutActive by remember { mutableStateOf(false) }
     var repCount by remember { mutableIntStateOf(0) }
+    var setCount by remember { mutableIntStateOf(0) }
     var totalSeconds by remember { mutableIntStateOf(0) }
     var averageFormScore by remember { mutableStateOf(0.0) }
     var currentCritique by remember { mutableStateOf("Position yourself in front of the camera to begin.") }
     var isFormWarning by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
 
-    // Non-recomposing handoff between the CameraX analyzer thread and the coroutine
-    // that talks to Gemini: the analyzer drops the freshest JPEG frame here and the
-    // analysis loop consumes it. Decouples capture rate from network latency.
-    val latestFrame = remember { AtomicReference<String?>(null) }
+    // Non-recomposing handoff between the CameraX analyzer thread (or the demo
+    // ticker) and the montage/Gemini coroutine: bones-annotated frames are pushed
+    // here with a timestamp and drained in chronological, contiguous batches so no
+    // rep is skipped between Gemini round trips. Capped ring buffer, not a queue,
+    // so a slow consumer only ever drops the OLDEST frames.
+    val frameRing = remember { ConcurrentLinkedDeque<Pair<Long, Bitmap>>() }
     val analyzerActive = remember { AtomicBoolean(false) }
     val lastConvertMs = remember { AtomicLong(0L) }
-    var reachedBottom by remember { mutableStateOf(false) }
     var formSamples by remember { mutableIntStateOf(0) }
     // Front/back lens for the small live self-view camera (PiP); flip cycles the two.
     var cameraLens by remember { mutableIntStateOf(CameraSelector.LENS_FACING_FRONT) }
+    // ML Kit draws bones only — never counts reps. One streaming detector, reused
+    // across every live camera frame, closed when the screen leaves composition.
+    val streamPoseDetector = remember { PoseSkeleton.createStreamDetector() }
+    DisposableEffect(Unit) { onDispose { streamPoseDetector.close() } }
+    // Latest bones-annotated live frame, shown in the PiP self-view so the user
+    // sees the red skeleton drawn over themselves in real time.
+    var pipDisplayBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    // Bundled demo frames pre-annotated once with a red skeleton, so demo mode
+    // renders (and montages) exactly like the live pipeline end-to-end.
+    var demoAnnotatedFrames by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
 
     LaunchedEffect(isWorkoutActive) { analyzerActive.set(isWorkoutActive) }
+
+    // Pre-annotate the bundled demo frames once (off the main thread) with the same
+    // red skeleton the live camera path draws, so the demo feed looks and montages
+    // identically to a real session. Uses a single-image detector since these are
+    // independent stills, not a continuous stream.
+    LaunchedEffect(demoMode) {
+        if (demoMode && demoFrames.isNotEmpty()) {
+            demoAnnotatedFrames = withContext(Dispatchers.Default) {
+                val detector = PoseSkeleton.createSingleImageDetector()
+                try {
+                    demoFrames.map { (bitmap, _) -> PoseSkeleton.annotate(detector, bitmap) }
+                } finally {
+                    detector.close()
+                }
+            }
+        }
+    }
 
     // Elapsed-time ticker
     LaunchedEffect(isWorkoutActive) {
@@ -171,27 +201,39 @@ fun PoseTrackerScreen(
         }
     }
 
-    // Live Gemini form-analysis loop: pulls the freshest frame and asks Gemini to
-    // grade form and report the movement phase. Reps are counted client-side from
-    // bottom->top phase transitions (LLMs are unreliable at counting directly).
+    // Montage Gemini analysis loop: ML Kit already drew the red skeleton on every
+    // buffered frame (drawing only — it never counts reps). This loop composes a
+    // 2x3 grid of the frames captured since the LAST call into ONE JPEG (keeping
+    // the proxy's single-image contract) and asks Gemini to read the MOTION across
+    // that window: how many complete reps finished, and whether a set boundary
+    // (a clear rest/pause) occurred. Windows are drained contiguously from
+    // frameRing so no rep is skipped between round trips, even at 3-5s latency.
     LaunchedEffect(isWorkoutActive) {
         if (!isWorkoutActive) return@LaunchedEffect
-        val systemPrompt = "You are an expert fitness form coach analyzing ONE still video frame of a " +
-            "user performing $exerciseName. Respond ONLY with compact minified JSON (no markdown, no prose) " +
-            "with exactly these keys: person_detected (boolean), phase (one of \"top\",\"bottom\",\"mid\",\"none\"), " +
-            "form_score (integer 0-100), critique (string, max 8 words, one actionable coaching cue). " +
-            "phase is the user's position in the $exerciseName movement: top=start/standing, " +
-            "bottom=deepest/hardest point, mid=in transition, none=no person visible."
+        val systemPrompt = "You are an expert fitness form coach analyzing a MONTAGE image for a user " +
+            "performing $exerciseName. The montage is a 2-column by 3-row grid of up to 6 frames, each " +
+            "already annotated with a RED pose-skeleton overlay, ordered chronologically top-left to " +
+            "bottom-right and spanning roughly the last 2 seconds. Read the SEQUENCE across the grid " +
+            "(not any single cell) to judge motion: one rep is one full movement cycle of $exerciseName " +
+            "(e.g. descent and return to the start position). Respond ONLY with compact minified JSON " +
+            "(no markdown, no prose) with exactly these keys: person_detected (boolean, true if a person " +
+            "is visible in the frames), reps_in_window (integer 0-3, COMPLETE reps of $exerciseName that " +
+            "finished during this window), set_complete (boolean, true only if the user has clearly " +
+            "paused or is resting, marking the end of a set), form_score (integer 0-100, form quality " +
+            "across the window), critique (string, max 8 words, one actionable coaching cue)."
         var lastSpokenCritique = ""
         var lastCritiqueSpokenAt = 0L
+        var wasSetComplete = false
         while (isWorkoutActive) {
-            val frame = latestFrame.getAndSet(null)
-            if (frame == null) { delay(200); continue }
+            val batch = drainFrames(frameRing)
+            if (batch.isEmpty()) { delay(300); continue }
+            val montage = buildMontage(sampleEvenly(batch, MONTAGE_COLS * MONTAGE_ROWS))
+            val imageBase64 = bitmapToBase64(montage, 70)
             isAnalyzing = true
             val raw = withContext(Dispatchers.IO) {
                 RetrofitClient.analyzeFrame(
-                    imageBase64 = frame,
-                    prompt = "Analyze this $exerciseName frame.",
+                    imageBase64 = imageBase64,
+                    prompt = "Analyze this $exerciseName montage window and report reps/set/form.",
                     systemPrompt = systemPrompt
                 )
             }
@@ -199,7 +241,8 @@ fun PoseTrackerScreen(
             val json = raw?.let { parseAnalysis(it) }
             if (json != null) {
                 val person = json.optBoolean("person_detected", false)
-                val phase = json.optString("phase", "none")
+                val repsInWindow = json.optInt("reps_in_window", 0).coerceIn(0, 3)
+                val setComplete = json.optBoolean("set_complete", false)
                 val score = json.optInt("form_score", 0)
                 val critique = json.optString("critique", "").ifBlank { "Analyzing your form..." }
                 if (person) {
@@ -207,8 +250,22 @@ fun PoseTrackerScreen(
                     isFormWarning = score in 1..79
                     averageFormScore = (averageFormScore * formSamples + score) / (formSamples + 1)
                     formSamples++
+                    // Gemini counts reps directly from the montage (client no longer runs a
+                    // phase state-machine); a window can legitimately contain 0-3 reps.
+                    if (repsInWindow > 0) {
+                        repCount += repsInWindow
+                        viewModel.speak(if (score >= 80) "Rep $repCount. Good form." else "Rep $repCount. Watch your form.")
+                    }
+                    // Debounce the set boundary on the false->true edge only, so one
+                    // rest period increments setCount exactly once no matter how many
+                    // montage windows the rest spans.
+                    if (setComplete && !wasSetComplete) {
+                        setCount++
+                        viewModel.speak("Set $setCount complete. Nice work.", android.speech.tts.TextToSpeech.QUEUE_ADD)
+                    }
+                    wasSetComplete = setComplete
                     // Speak the live coaching cue aloud: only when it changes and at most
-                    // every ~4s, queued (not flushed) so rep announcements take priority.
+                    // every ~4s, queued (not flushed) so rep/set announcements take priority.
                     val now = System.currentTimeMillis()
                     if (critique != lastSpokenCritique && critique != "Analyzing your form..." &&
                         now - lastCritiqueSpokenAt > 4000) {
@@ -216,30 +273,20 @@ fun PoseTrackerScreen(
                         lastSpokenCritique = critique
                         lastCritiqueSpokenAt = now
                     }
-                    // Count a rep on a full descent->stand cycle: once the lifter has
-                    // clearly left the top (bottom OR mid) and then returns to top.
-                    // (Real footage often reads as "mid" at depth rather than a strict
-                    // "bottom", so we key off leaving/returning to the top position.)
-                    when (phase) {
-                        "bottom", "mid" -> reachedBottom = true
-                        "top" -> if (reachedBottom) {
-                            reachedBottom = false
-                            repCount++
-                            viewModel.speak(if (score >= 80) "Rep $repCount. Good form." else "Rep $repCount. Watch your form.")
-                        }
-                    }
                 } else {
                     currentCritique = "Position yourself fully in frame to begin."
                     isFormWarning = false
+                    wasSetComplete = false
                 }
             }
             delay(250)
         }
     }
 
-    // Demo feed driver: advances the displayed squat keyframe smoothly for the viewer
-    // and drops the current frame into latestFrame for the real Gemini analysis loop
-    // to consume (throttled to match the live-camera capture cadence).
+    // Demo feed driver: advances the displayed squat keyframe smoothly for the
+    // viewer and pushes the (pre-annotated, bones-drawn) frame into the SAME
+    // frameRing the montage loop consumes, throttled to match the live-camera
+    // capture cadence — so demo mode counts reps/sets end-to-end too.
     LaunchedEffect(isWorkoutActive, demoMode) {
         if (!demoMode || demoFrames.isEmpty() || !isWorkoutActive) return@LaunchedEffect
         var lastFed = 0L
@@ -247,7 +294,8 @@ fun PoseTrackerScreen(
             demoIndex = (demoIndex + 1) % demoFrames.size
             val now = System.currentTimeMillis()
             if (now - lastFed >= 700) {
-                latestFrame.set(demoFrames[demoIndex].second)
+                val annotated = demoAnnotatedFrames.getOrNull(demoIndex) ?: demoFrames[demoIndex].first
+                pushFrame(frameRing, now, annotated)
                 lastFed = now
             }
             delay(360)
@@ -275,8 +323,11 @@ fun PoseTrackerScreen(
     ) {
         // --- LIVE CAMERA WITH GEMINI FRAME ANALYSIS (or bundled demo feed) ---
         if (demoMode && demoFrames.isNotEmpty()) {
+            // Show the red-skeleton-annotated demo frame once ML Kit has processed it,
+            // falling back to the raw frame for the brief moment before that finishes.
+            val demoFrame = demoAnnotatedFrames.getOrNull(demoIndex) ?: demoFrames[demoIndex].first
             Image(
-                bitmap = demoFrames[demoIndex].first.asImageBitmap(),
+                bitmap = demoFrame.asImageBitmap(),
                 contentDescription = "Demo workout feed",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -387,9 +438,14 @@ fun PoseTrackerScreen(
                                             // In demo mode analysis comes from the bundled squat
                                             // frames, so the live camera is preview-only here.
                                             if (analyzerActive.get() && !demoMode && now - lastConvertMs.get() >= 700) {
-                                                val b64 = imageProxyToBase64(imageProxy, 512)
-                                                if (b64 != null) {
-                                                    latestFrame.set(b64)
+                                                val bitmap = imageProxyToUprightBitmap(imageProxy, 480)
+                                                if (bitmap != null) {
+                                                    // ML Kit DRAWS the red skeleton only — it never
+                                                    // counts reps. The annotated frame is shown live
+                                                    // in this PiP AND buffered for Gemini's montage.
+                                                    val annotated = PoseSkeleton.annotate(streamPoseDetector, bitmap)
+                                                    pipDisplayBitmap = annotated
+                                                    pushFrame(frameRing, now, annotated)
                                                     lastConvertMs.set(now)
                                                 }
                                             }
@@ -411,6 +467,20 @@ fun PoseTrackerScreen(
                             pv
                         }
                     )
+                }
+                // Overlay the latest bones-annotated frame on top of the raw preview so
+                // the user visibly sees the red skeleton ML Kit drew on themselves. Demo
+                // mode keeps the raw self-view passthrough (bones are shown full-screen
+                // instead, from the bundled demo frames).
+                if (!demoMode) {
+                    pipDisplayBitmap?.let { bmp ->
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = "Live pose skeleton",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
                 Text(
                     text = if (demoMode) "CAM" else "LIVE",
@@ -475,8 +545,18 @@ fun PoseTrackerScreen(
                     Text("REPS", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
                     Text(
                         text = "$repCount",
-                        fontSize = 24.sp,
+                        fontSize = 20.sp,
                         color = Color(0xFF22C55E),
+                        fontWeight = FontWeight.Black
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("SETS", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "$setCount",
+                        fontSize = 20.sp,
+                        color = Color(0xFF38BDF8),
                         fontWeight = FontWeight.Black
                     )
                 }
@@ -654,9 +734,9 @@ private fun loadDemoFrames(context: android.content.Context): List<Pair<Bitmap, 
     }
 }
 
-// Converts a CameraX frame to a downscaled, upright JPEG encoded as base64 (NO_WRAP)
-// suitable for sending to Gemini. Returns null on any failure.
-private fun imageProxyToBase64(image: ImageProxy, maxDim: Int): String? {
+// Converts a CameraX frame to a downscaled, upright Bitmap (rotation baked in) ready
+// for ML Kit pose detection and/or JPEG encoding. Returns null on any failure.
+private fun imageProxyToUprightBitmap(image: ImageProxy, maxDim: Int): Bitmap? {
     return try {
         val bitmap = image.toBitmap()
         val rotation = image.imageInfo.rotationDegrees
@@ -666,16 +746,76 @@ private fun imageProxyToBase64(image: ImageProxy, maxDim: Int): String? {
         val matrix = Matrix()
         if (scale < 1f) matrix.postScale(scale, scale)
         if (rotation != 0) matrix.postRotate(rotation.toFloat())
-        val out = if (scale < 1f || rotation != 0)
+        if (scale < 1f || rotation != 0)
             Bitmap.createBitmap(bitmap, 0, 0, w, h, matrix, true)
         else bitmap
-        val stream = ByteArrayOutputStream()
-        out.compress(Bitmap.CompressFormat.JPEG, 70, stream)
-        Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
     } catch (e: Exception) {
-        Log.e("PoseTracker", "imageProxyToBase64 failed", e)
+        Log.e("PoseTracker", "imageProxyToUprightBitmap failed", e)
         null
     }
+}
+
+// Encodes a bitmap as a base64 JPEG (NO_WRAP) suitable for the Gemini proxy.
+private fun bitmapToBase64(bitmap: Bitmap, quality: Int): String {
+    val stream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+    return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+}
+
+// Cap on the number of bones-annotated frames buffered between Gemini calls.
+private const val FRAME_RING_CAPACITY = 12
+private const val MONTAGE_COLS = 2
+private const val MONTAGE_ROWS = 3
+
+// Appends a timestamped, bones-annotated frame to the ring buffer, dropping the
+// OLDEST frame once over capacity so a slow consumer never blocks the producer.
+private fun pushFrame(ring: ConcurrentLinkedDeque<Pair<Long, Bitmap>>, timestampMs: Long, bitmap: Bitmap) {
+    ring.addLast(timestampMs to bitmap)
+    while (ring.size > FRAME_RING_CAPACITY) ring.pollFirst()
+}
+
+// Atomically takes every frame currently buffered, in chronological order, and
+// clears the buffer — so the NEXT drain only contains frames captured since this
+// call. This is what keeps Gemini's montage windows contiguous (no skipped reps)
+// even though each round trip takes a few seconds.
+private fun drainFrames(ring: ConcurrentLinkedDeque<Pair<Long, Bitmap>>): List<Bitmap> {
+    val drained = ArrayList<Pair<Long, Bitmap>>()
+    while (true) {
+        val item = ring.pollFirst() ?: break
+        drained.add(item)
+    }
+    return drained.sortedBy { it.first }.map { it.second }
+}
+
+// Evenly samples up to [maxCount] items from [items], preserving order. Used to
+// pick which buffered frames go into the fixed-size montage grid.
+private fun <T> sampleEvenly(items: List<T>, maxCount: Int): List<T> {
+    if (items.size <= maxCount) return items
+    val step = items.size.toDouble() / maxCount
+    return (0 until maxCount).map { items[(it * step).toInt().coerceAtMost(items.size - 1)] }
+}
+
+// Composes up to MONTAGE_COLS x MONTAGE_ROWS frames into ONE grid image, laid out
+// chronologically top-left -> bottom-right, so Gemini can read motion across the
+// whole window from a single JPEG (keeping the proxy's single-image contract).
+// Frames beyond the input count are padded by repeating the last available frame.
+private fun buildMontage(frames: List<Bitmap>): Bitmap {
+    val cellW = 400
+    val cellH = 300
+    val montage = Bitmap.createBitmap(cellW * MONTAGE_COLS, cellH * MONTAGE_ROWS, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(montage)
+    canvas.drawColor(android.graphics.Color.BLACK)
+    if (frames.isEmpty()) return montage
+    val cellCount = MONTAGE_COLS * MONTAGE_ROWS
+    for (index in 0 until cellCount) {
+        val bmp = frames[minOf(index, frames.size - 1)]
+        val col = index % MONTAGE_COLS
+        val row = index / MONTAGE_COLS
+        val destRect = android.graphics.Rect(col * cellW, row * cellH, (col + 1) * cellW, (row + 1) * cellH)
+        val srcRect = android.graphics.Rect(0, 0, bmp.width, bmp.height)
+        canvas.drawBitmap(bmp, srcRect, destRect, null)
+    }
+    return montage
 }
 
 // Tolerant JSON extraction from the model's reply (strips markdown fences / prose).

@@ -128,9 +128,12 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     if (systemPrompt) generationConfig.systemInstruction = systemPrompt;
     if (responseMimeType) generationConfig.responseMimeType = responseMimeType;
 
-    // Using gemini-2.5-flash as the fast, efficient multimodal model
+    // Model is configurable via the GENAI_MODEL env var (defaulting to the fast,
+    // efficient gemini-2.5-flash) so it can be flipped (e.g. to gemini-3.5-flash)
+    // without a code change/redeploy of this function's source.
+    const modelName = process.env.GENAI_MODEL || "gemini-2.5-flash";
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: modelName,
       contents,
       config: Object.keys(generationConfig).length ? generationConfig : undefined
     });
@@ -140,7 +143,7 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     // Return response with audited logging metadata
     return res.status(200).json({
       text: responseText,
-      model: "gemini-2.5-flash",
+      model: modelName,
       user: {
         email: authenticatedUser.email,
         provider: authenticatedUser.provider
