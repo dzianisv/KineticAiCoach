@@ -1,0 +1,73 @@
+name: full_flow
+package: com.aistudio.aicoach.vtzrkm
+# PRD v2 end-to-end journey, driven entirely through the guest (Firebase
+# anonymous) path so it runs on an emulator with no Google Play Services.
+# Flow: guest login -> conversational coach onboarding (height/weight/goal/days)
+# -> program built -> Start today's class -> simulated multi-exercise workout
+# -> end-of-class results table -> back on dashboard/history.
+goal: >
+  You are testing the "AI Coach" fitness Android app end to end. Follow these
+  steps in order, looking at each screenshot before acting. Be patient: after
+  taps that trigger network or navigation, wait a few seconds for the next
+  screen.
+
+  1. LOGIN: The app opens on a login screen with the title "AI COACH", a "Sign
+     in with Google" button, and a "Continue as Guest" button. Tap "Continue as
+     Guest" (the outlined/secondary button, NOT the Google button). Wait for
+     Firebase anonymous sign-in.
+
+  2. COACH ONBOARDING CHAT: A chat screen appears where an AI coach asks you
+     questions to build a program. When the coach asks for your HEIGHT, tap the
+     text input at the bottom, type "175 cm", and send. When it asks for your
+     WEIGHT, type "70 kg" and send. When it asks about your GOALS, type "build
+     muscle and get fit" and send. When it asks how many DAYS per week you can
+     train, type "3 days" and send. Answer whatever the coach asks with a short
+     sensible reply; always use the text box and the send button. Wait after
+     each send for the coach to reply.
+
+  3. PROGRAM READY: The coach says the program is ready (you may see a list of
+     exercises). Tap the button that continues to the app (labelled something
+     like "Program ready", "Start", "Let's go", "Done", or "Continue"). You
+     should land on a dashboard/home screen.
+
+  4. START CLASS: On the dashboard, find and tap the "Start today's class"
+     button.
+
+  5. WORKOUT: A workout screen shows the current exercise name and a rep counter
+     that increases on its own over a few seconds (a simulated live workout).
+     Wait ~5 seconds for reps to count up, then tap the button to finish the set
+     and move on (labelled like "Next exercise", "Set done", "Next", or
+     "Finish"). Repeat this for every exercise in the class until no more remain.
+
+  6. RESULTS: After the last exercise, a results table appears listing each
+     exercise with its reps / form score / points and a total. This is the goal
+     screen. If there is a "Done" button, you may tap it to return to the
+     dashboard.
+
+  Report TEST_PASSED once you have reached the end-of-class results table (or the
+  dashboard after tapping Done on the results), having gone through login,
+  onboarding chat, and at least one workout exercise.
+successCriteria:
+  - Tapped "Continue as Guest" and left the login screen
+  - Answered the coach's onboarding questions in the chat and a program was built
+  - Tapped "Start today's class" and went through at least one workout exercise
+  - An end-of-class results table (per-exercise reps/form/points) was shown, or
+    the dashboard was shown again after finishing the class
+failureCriteria:
+  - The app crashes or shows an error dialog/toast at any step
+  - The flow gets stuck on the login screen after tapping "Continue as Guest"
+  - The onboarding chat never accepts input or never produces a program
+  - "Start today's class" cannot be found or does nothing
+  - Only a blank white/black screen is shown with no UI
+verification:
+  prompt: >
+    Look at this screenshot from the AI Coach Android app, taken at the END of an
+    automated end-to-end test that logged in as guest, completed a chat
+    onboarding, and ran a simulated multi-exercise workout class. Answer strictly
+    YES or NO: Does the screenshot show EITHER (a) an end-of-class results/summary
+    table listing exercises with reps, a form score, or points, OR (b) a
+    dashboard/home screen (with program, coach chat, or a workout-history list)
+    that clearly comes AFTER a completed class? A login screen ("Sign in with
+    Google" / "Continue as Guest"), a blank screen, or a crash dialog counts as
+    NO. Answer YES or NO, then one sentence of evidence.
+maxSteps: 45
