@@ -17,6 +17,13 @@ local.properties
 .env
 debug.keystore
 
+# Release signing (upload keystore + credentials) — never commit these.
+# Real secrets live in Bitwarden (the 'dev' collection); keystore.properties.template
+# documents the expected format.
+keystore.properties
+*.keystore
+*.jks
+
 # Firebase provisioning (local secrets/handoff — do not commit)
 .firebase-provision.local
 app/google-services.json

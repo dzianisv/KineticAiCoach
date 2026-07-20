@@ -1,4 +1,6 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -9,6 +11,31 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+// Release signing: read from a gitignored `keystore.properties` file at the repo root
+// (see keystore.properties.template) or fall back to env vars (KEYSTORE_PATH,
+// KEYSTORE_STORE_PASSWORD, KEYSTORE_KEY_ALIAS, KEYSTORE_KEY_PASSWORD). Never hardcode secrets.
+// If neither source is available, the release build type is left unsigned so `debug` builds
+// and CI checks keep working for contributors who don't have upload-key credentials.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+  if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { load(it) }
+  }
+}
+
+fun releaseSigningProperty(propertyKey: String, envKey: String): String? =
+  keystoreProperties.getProperty(propertyKey) ?: System.getenv(envKey)
+
+val releaseStoreFilePath = releaseSigningProperty("storeFile", "KEYSTORE_PATH")
+val releaseStorePassword = releaseSigningProperty("storePassword", "KEYSTORE_STORE_PASSWORD")
+val releaseKeyAlias = releaseSigningProperty("keyAlias", "KEYSTORE_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningProperty("keyPassword", "KEYSTORE_KEY_PASSWORD")
+val hasReleaseSigningConfig =
+  releaseStoreFilePath != null &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -18,18 +45,19 @@ android {
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
-    create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+    if (hasReleaseSigningConfig) {
+      create("release") {
+        storeFile = file(releaseStoreFilePath!!)
+        storePassword = releaseStorePassword
+        keyAlias = releaseKeyAlias
+        keyPassword = releaseKeyPassword
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -42,9 +70,12 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      // Falls back to unsigned (no signingConfig) when keystore.properties/env vars are
+      // absent, so `./gradlew :app:bundleRelease` still exercises R8/shrinking for anyone.
+      signingConfig = if (hasReleaseSigningConfig) signingConfigs.getByName("release") else null
     }
     debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
