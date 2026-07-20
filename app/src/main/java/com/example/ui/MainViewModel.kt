@@ -512,30 +512,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    // Persist the completed class: save the WorkoutClass first to get its id, then link each per-exercise session to it.
-    suspend fun finishTodaysClass(): Int {
+    // Finish the class: navigate to results immediately using an optimistic id,
+    // and persist the WorkoutClass + per-exercise sessions in the background so
+    // navigation never blocks on Room I/O (which previously let a stray tap
+    // strand the user on the last exercise).
+    fun finishTodaysClass(): Int {
         val results = _classResults.value
-        val now = System.currentTimeMillis()
-        val workoutClass = WorkoutClass(
-            startedAt = if (classStartedAt == 0L) now else classStartedAt,
-            completedAt = now,
-            exerciseCount = results.size,
-            totalReps = results.sumOf { it.reps },
-            avgFormScore = if (results.isNotEmpty()) results.map { it.formScore }.average() else 0.0,
-            totalPoints = results.sumOf { it.points }
-        )
-        val classId = repository.saveClass(workoutClass)
-        results.forEach { r ->
-            repository.addWorkoutSession(
-                exerciseName = r.name,
-                durationSeconds = r.reps * 3,
-                reps = r.reps,
-                formScore = r.formScore.toDouble(),
-                feedback = "Class exercise: ${r.name} — ${r.formScore}% form.",
-                classId = classId
+        val startedAt = if (classStartedAt == 0L) System.currentTimeMillis() else classStartedAt
+        val optimisticId = (workoutClasses.value.maxOfOrNull { it.id } ?: 0) + 1
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val workoutClass = WorkoutClass(
+                startedAt = startedAt,
+                completedAt = now,
+                exerciseCount = results.size,
+                totalReps = results.sumOf { it.reps },
+                avgFormScore = if (results.isNotEmpty()) results.map { it.formScore }.average() else 0.0,
+                totalPoints = results.sumOf { it.points }
             )
+            val classId = repository.saveClass(workoutClass)
+            results.forEach { r ->
+                repository.addWorkoutSession(
+                    exerciseName = r.name,
+                    durationSeconds = r.reps * 3,
+                    reps = r.reps,
+                    formScore = r.formScore.toDouble(),
+                    feedback = "Class exercise: ${r.name} — ${r.formScore}% form.",
+                    classId = classId
+                )
+            }
         }
-        return classId
+        return optimisticId
     }
     // --- end PRD v2 (Lane B) ---
 

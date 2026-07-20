@@ -48,12 +48,14 @@ goal: >
 
   6. RESULTS: After you finish the LAST exercise, a results screen titled
      "Class Complete!" appears with a table listing each exercise and its
-     reps / form score / points plus a TOTAL row. This is the goal screen.
-     STOP HERE. Do NOT tap "Done". Report TEST_PASSED with this table visible.
+     reps / form score / points plus a TOTAL row. The MOMENT you see the words
+     "Class Complete!", the test is done: report TEST_PASSED immediately and take
+     NO further action. Do NOT tap "Done", do NOT tap the bottom navigation, do
+     NOT start another class.
 
-  Report TEST_PASSED once the "Class Complete!" results table is visible, having
-  gone through login, onboarding chat, and all workout exercises. Do not tap
-  "Done" — leave the results table on screen.
+  Report TEST_PASSED as soon as the "Class Complete!" results table is visible,
+  having gone through login, onboarding chat, and all workout exercises. Never
+  tap anything once "Class Complete!" is on screen.
 successCriteria:
   - Tapped "Continue as Guest" and left the login screen
   - Answered the coach's onboarding questions in the chat and a program was built

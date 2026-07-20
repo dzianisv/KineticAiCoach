@@ -84,7 +84,6 @@ fun TodaysClassScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
 
     val exercises by viewModel.todaysClass.collectAsState()
     val currentIndex by viewModel.currentClassIndex.collectAsState()
@@ -320,11 +319,9 @@ fun TodaysClassScreen(
                     )
                     val hasMore = viewModel.advanceClass()
                     if (!hasMore) {
-                        scope.launch {
-                            val classId = viewModel.finishTodaysClass()
-                            viewModel.speak("Class complete! Amazing work.")
-                            onClassFinished(classId)
-                        }
+                        // Navigate immediately; persistence runs in the background.
+                        viewModel.speak("Class complete! Amazing work.")
+                        onClassFinished(viewModel.finishTodaysClass())
                     }
                 },
                 modifier = Modifier
