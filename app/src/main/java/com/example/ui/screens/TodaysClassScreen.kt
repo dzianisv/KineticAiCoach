@@ -1,13 +1,5 @@
 package com.example.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -57,14 +49,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import com.example.ui.MainViewModel
 import com.example.ui.components.WorkoutAnimator
 import kotlinx.coroutines.delay
@@ -82,19 +70,10 @@ fun TodaysClassScreen(
     onClassFinished: (Int) -> Unit,
     onExit: () -> Unit
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
     val exercises by viewModel.todaysClass.collectAsState()
     val currentIndex by viewModel.currentClassIndex.collectAsState()
     val currentExercise = exercises.getOrNull(currentIndex)
     val exerciseName = currentExercise?.name ?: "Workout"
-
-    // The class always runs in simulation mode (see isSimulationMode below), so
-    // the camera preview is never shown and no CAMERA permission is needed.
-    // Requesting it here previously popped a system permission dialog over the
-    // class, which could swallow taps on the finish button.
-    val hasCameraPermission = false
 
     // Per-exercise simulated workout state
     var repCount by remember { mutableIntStateOf(0) }
@@ -146,44 +125,32 @@ fun TodaysClassScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Camera preview or animated avatar (simulation mode -> avatar)
-        if (hasCameraPermission && !isSimulationMode) {
-            AndroidView(
-                factory = { ctx ->
-                    val previewView = PreviewView(ctx)
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        val preview = androidx.camera.core.Preview.Builder().build().also {
-                            it.surfaceProvider = previewView.surfaceProvider
-                        }
-                        try {
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                CameraSelector.DEFAULT_BACK_CAMERA,
-                                preview
-                            )
-                        } catch (e: Exception) {
-                            Log.e("TodaysClass", "Camera binding failed", e)
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-                    previewView
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Box(
+        // The current exercise's instruction animation is the primary thing the user sees
+        // while performing a set. It is rendered unconditionally (never gated behind camera
+        // permission / pose detection, which may never become available on a given device)
+        // and automatically updates whenever `currentIndex` advances to the next exercise.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 260.dp)
+        ) {
+            Text(
+                text = "HOW TO: ${exerciseName.uppercase()}",
+                fontSize = 13.sp,
+                color = Color(0xFF38BDF8),
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 260.dp)
-            ) {
-                WorkoutAnimator(
-                    exerciseName = exerciseName,
-                    modifier = Modifier.fillMaxSize(),
-                    isWarningMode = currentCritique.contains("Warning")
-                )
-            }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("class_animation_label")
+            )
+            WorkoutAnimator(
+                exerciseName = exerciseName,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .testTag("class_workout_animator"),
+                isWarningMode = currentCritique.contains("Warning")
+            )
         }
 
         // Scanning laser HUD
