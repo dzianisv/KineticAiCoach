@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -81,6 +83,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -110,6 +113,9 @@ fun DashboardScreen(
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val profile by viewModel.userProfile.collectAsState()
+    val isProState by viewModel.isPro.collectAsState()
+    val trialDaysRemainingState by viewModel.trialDaysRemaining.collectAsState()
+    val trialExpired by viewModel.trialExpired.collectAsState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isWideScreen = maxWidth > 600.dp
@@ -280,19 +286,67 @@ fun DashboardScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-                    when (selectedTab) {
-                        0 -> CoachTab(viewModel, onNavigateToOnboarding)
-                        1 -> WorkoutsTab(onStartWorkout, onStartClass)
-                        2 -> AnalyticsTab(viewModel)
-                        3 -> LeaderboardTab(viewModel)
-                        4 -> {
-                            val isPro by viewModel.isPro.collectAsState()
-                            AboutTab(isPro = isPro, onUpgradeClick = onUpgradeClick)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        TrialBanner(
+                            isPro = isProState,
+                            trialDaysRemaining = trialDaysRemainingState,
+                            trialExpired = trialExpired,
+                            onUpgradeClick = { viewModel.triggerPaywall("trial_banner") }
+                        )
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            when (selectedTab) {
+                                0 -> CoachTab(viewModel, onNavigateToOnboarding)
+                                1 -> WorkoutsTab(onStartWorkout, onStartClass)
+                                2 -> AnalyticsTab(viewModel)
+                                3 -> LeaderboardTab(viewModel)
+                                4 -> {
+                                    val isPro by viewModel.isPro.collectAsState()
+                                    val trialDaysRemaining by viewModel.trialDaysRemaining.collectAsState()
+                                    val context = LocalContext.current
+                                    AboutTab(
+                                        isPro = isPro,
+                                        trialDaysRemaining = trialDaysRemaining,
+                                        onUpgradeClick = onUpgradeClick,
+                                        onManageSubscription = {
+                                            val url = viewModel.manageSubscriptionUrl(context.packageName)
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+// ==================== TRIAL BANNER ====================
+// Persistent, tappable banner shown above tab content for non-Pro users. Communicates
+// remaining trial days (or an expired state) and routes taps to the paywall.
+@Composable
+private fun TrialBanner(isPro: Boolean, trialDaysRemaining: Int, trialExpired: Boolean, onUpgradeClick: () -> Unit) {
+    if (isPro) return
+    val (bannerText, bannerBg) = if (trialExpired) {
+        "Trial ended — Upgrade to Kinetic Pro" to Color.White
+    } else {
+        "$trialDaysRemaining day${if (trialDaysRemaining == 1) "" else "s"} left in your free trial" to PremiumGrayDark
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(bannerBg)
+            .clickable { onUpgradeClick() }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = bannerText,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (trialExpired) Color.Black else Color.White
+        )
     }
 }
 

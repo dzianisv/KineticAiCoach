@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.analytics.Analytics
 import com.example.billing.BillingConfig
 import com.example.billing.BillingManager
+import com.example.billing.TrialManager
 import com.example.data.AppDatabase
 import com.example.data.Badge
 import com.example.data.FitRepository
@@ -31,6 +32,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -58,6 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val database = AppDatabase.getDatabase(application)
     private val repository = FitRepository(database)
     private val billingManager = BillingManager(application, viewModelScope)
+    private val trialManager = TrialManager(application, viewModelScope)
 
     // Flows from database
     val userProfile: StateFlow<UserProfile?> = repository.userProfile
@@ -79,6 +83,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     private val _showPaywall = MutableStateFlow(false)
     val showPaywall: StateFlow<Boolean> = _showPaywall.asStateFlow()
+
+    // Reactive trial state for trial banners / paywall header messaging.
+    private val _trialDaysRemaining = MutableStateFlow(BillingConfig.TRIAL_DAYS.toInt())
+    val trialDaysRemaining: StateFlow<Int> = _trialDaysRemaining.asStateFlow()
+
+    private val _trialExpired = MutableStateFlow(false)
+    val trialExpired: StateFlow<Boolean> = _trialExpired.asStateFlow()
+
+    private var trialStartedLogged = false
 
     private val _paywallSource = MutableStateFlow("")
     val paywallSource: StateFlow<String> = _paywallSource.asStateFlow()
@@ -108,11 +121,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             repository.checkAndSeedDatabase()
             loadPersistedChatMessages()
         }
+        // Reconcile the trial identity for an already-signed-in user relaunching the app.
+        // Firebase Auth persists sessions locally, so currentUser is non-null on a returning
+        // user's cold start even though signInUser() isn't re-called.
+        reconcileTrial()
+        viewModelScope.launch {
+            trialManager.trialStartedAt.collect { startedAt ->
+                // Heuristic: if we're observing a trial start within the last 30s of "now", treat it as
+                // a brand-new trial (vs. resolving an existing, older one on a returning user's cold
+                // start) and log trial_started exactly once per ViewModel lifetime. This is a pragmatic
+                // approximation — TrialManager doesn't currently distinguish "just created" from
+                // "resolved existing" in its return type, so a tighter signal would require extending
+                // its API; acceptable for now since false negatives/positives are both low-stakes here
+                // (it's a funnel metric, not an entitlement decision).
+                if (startedAt != null && !trialStartedLogged &&
+                    System.currentTimeMillis() - startedAt < TRIAL_JUST_STARTED_WINDOW_MS) {
+                    Analytics.logTrialStarted()
+                    trialStartedLogged = true
+                }
+                refreshTrialState()
+            }
+        }
+        viewModelScope.launch {
+            // Keep the day-countdown fresh across midnight while the app stays open; the actual
+            // entitlement check (isEntitled()) is always computed fresh from the wall clock regardless
+            // of this ticker, so this only affects banner display cadence, not gating correctness.
+            while (isActive) {
+                delay(TimeUnit.MINUTES.toMillis(15))
+                refreshTrialState()
+            }
+        }
         // Initialize TTS
         try {
             tts = TextToSpeech(application, this)
         } catch (e: Exception) {
             Log.e("MainViewModel", "TTS Init failed", e)
+        }
+    }
+
+    private fun reconcileTrial() {
+        val user = FirebaseAuth.getInstance().currentUser
+        trialManager.reconcile(uid = user?.uid, isAnonymous = user?.isAnonymous ?: true)
+    }
+
+    private fun refreshTrialState() {
+        val remaining = trialManager.trialDaysRemaining()
+        val expired = trialManager.trialExpired()
+        val wasExpired = _trialExpired.value
+        _trialDaysRemaining.value = remaining
+        _trialExpired.value = expired
+        // Log the transition exactly once (not on every recompute) so this fires once per
+        // real expiry, not on every app resume while already expired.
+        if (expired && !wasExpired) {
+            Analytics.logTrialExpired()
         }
     }
 
@@ -169,6 +230,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                 loadPersistedChatMessages()
             }
         }
+        // Reconcile the trial for a fresh interactive login (real sign-in AND the anonymous
+        // "Continue as Guest" path — both call signInUser today).
+        reconcileTrial()
     }
 
     fun signOutUser() {
@@ -228,6 +292,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     // Chat Actions
     fun sendMessage(text: String) {
         if (text.isBlank()) return
+        if (!isEntitled()) {
+            triggerPaywall("coach_text")
+            return
+        }
         addAndPersistChatMessage("user", text)
         _isChatLoading.value = true
 
@@ -264,7 +332,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     /** G4: user picked an image via PickVisualMedia(ImageOnly). */
     fun sendImageMessage(imageUri: Uri, caption: String) {
-        if (!isPro.value) {
+        if (!isEntitled()) {
             triggerPaywall("coach_upload")
             return
         }
@@ -321,7 +389,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      * inline via VideoView (see CoachAttachments.kt).
      */
     fun sendVideoMessage(videoUri: Uri, caption: String) {
-        if (!isPro.value) {
+        if (!isEntitled()) {
             triggerPaywall("coach_upload")
             return
         }
@@ -374,7 +442,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     /** G6: user picked a document (PDF / text / other) via GetContent with a wildcard mime filter. */
     fun sendFileMessage(fileUri: Uri, fileName: String, mimeType: String?, caption: String) {
-        if (!isPro.value) {
+        if (!isEntitled()) {
             triggerPaywall("coach_upload")
             return
         }
@@ -725,9 +793,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultClassExercises)
 
     // Completed multi-exercise classes for the Dashboard class-history view.
-    // Eagerly (not WhileSubscribed) because canStartAnalyzedClass()/classesCompletedLast7Days()
-    // read `.value` synchronously and must never see a stale-empty list before any UI collects
-    // this flow — that would silently grant unlimited free Gemini-analyzed classes.
+    // Eagerly (not WhileSubscribed) because finishTodaysClass() reads `.value`
+    // synchronously to compute an optimistic id, and must never see a stale-empty
+    // list before any UI collects this flow — that would corrupt the id sequence.
     val workoutClasses: StateFlow<List<WorkoutClass>> = repository.workoutClasses
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -743,19 +811,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val currentClassExerciseName: String
         get() = todaysClass.value.getOrNull(_currentClassIndex.value)?.name ?: "Workout"
 
-    /** Count of AI-analyzed classes completed within the rolling FREE_WINDOW_DAYS window. */
-    fun classesCompletedLast7Days(): Int {
-        val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(BillingConfig.FREE_WINDOW_DAYS)
-        return workoutClasses.value.count { it.completedAt >= cutoff }
-    }
-
-    /** Remaining free classes this rolling week (never negative). For UI display. */
-    fun remainingFreeClasses(): Int =
-        (BillingConfig.FREE_WEEKLY_CLASS_LIMIT - classesCompletedLast7Days()).coerceAtLeast(0)
-
-    /** THE single gate everything must check before starting a Gemini-analyzed class. */
-    fun canStartAnalyzedClass(): Boolean =
-        isPro.value || classesCompletedLast7Days() < BillingConfig.FREE_WEEKLY_CLASS_LIMIT
+    /** THE single gate everything must check before starting a Gemini-analyzed class or sending a coach message. */
+    fun isEntitled(): Boolean = isPro.value || trialManager.isTrialActive()
 
     fun triggerPaywall(source: String) {
         _paywallSource.value = source
@@ -773,11 +830,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun restorePurchases() {
+        val wasPro = isPro.value
         billingManager.queryPurchasesAsync()
+        viewModelScope.launch {
+            // queryPurchasesAsync() is async with no completion callback exposed to the ViewModel;
+            // this fixed delay-then-check is a pragmatic approximation for the analytics event only
+            // (it never gates entitlement — isPro itself always reflects BillingManager's live state
+            // regardless of this check). A more precise signal would require BillingManager exposing
+            // a suspendable/callback-based restore-completion result — a reasonable follow-up.
+            delay(1500L)
+            if (!wasPro && isPro.value) {
+                Analytics.logSubscriptionRestored()
+            }
+        }
+    }
+
+    fun manageSubscriptionUrl(applicationId: String): String =
+        BillingConfig.manageSubscriptionUrl(applicationId)
+
+    fun checkPaymentIssues(activity: Activity) {
+        billingManager.showInAppMessagesIfNeeded(activity)
     }
 
     fun startTodaysClass(): Boolean {
-        if (!canStartAnalyzedClass()) {
+        if (!isEntitled()) {
             triggerPaywall("class_limit")
             return false
         }
@@ -849,6 +925,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         // Guard against oversized inline-data payloads on the Gemini proxy (G6 file attachments).
         // ~15MB raw -> ~20MB base64, matching typical Gemini inlineData request-size limits.
         private const val MAX_ATTACHMENT_FILE_BYTES = 15 * 1024 * 1024
+
+        // A trialStartedAt observed within this window of "now" is treated as a brand-new trial
+        // (for the one-shot trial_started analytics event), vs. resolving an existing older one.
+        private const val TRIAL_JUST_STARTED_WINDOW_MS = 30_000L
     }
 }
 

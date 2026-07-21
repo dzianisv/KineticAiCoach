@@ -1,6 +1,8 @@
 package com.example
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -105,6 +108,10 @@ fun MainNavigation() {
         }
 
         composable("dashboard") {
+            val ctx = LocalContext.current
+            LaunchedEffect(Unit) {
+                (ctx as? Activity)?.let { viewModel.checkPaymentIssues(it) }
+            }
             DashboardScreen(
                 viewModel = viewModel,
                 onStartWorkout = { exerciseName ->
@@ -172,14 +179,26 @@ fun MainNavigation() {
         if (showPaywall) {
             val proPlans by viewModel.proPlans.collectAsState()
             val billingConnected by viewModel.billingConnected.collectAsState()
+            val isPro by viewModel.isPro.collectAsState()
+            val trialDaysRemaining by viewModel.trialDaysRemaining.collectAsState()
+            val trialExpired by viewModel.trialExpired.collectAsState()
             val activity = LocalContext.current as? Activity
             PaywallScreen(
                 proPlans = proPlans,
                 isConnected = billingConnected,
+                isPro = isPro,
+                trialDaysRemaining = trialDaysRemaining,
+                trialExpired = trialExpired,
                 onSubscribe = { basePlanId ->
                     activity?.let { viewModel.launchPurchase(it, basePlanId) }
                 },
                 onRestore = { viewModel.restorePurchases() },
+                onManageSubscription = {
+                    activity?.let {
+                        val url = viewModel.manageSubscriptionUrl(it.packageName)
+                        it.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                },
                 onDismiss = { viewModel.dismissPaywall() }
             )
         }

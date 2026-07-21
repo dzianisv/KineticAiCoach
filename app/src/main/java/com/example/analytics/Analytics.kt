@@ -31,6 +31,9 @@ object Analytics {
     fun logPurchaseStarted(basePlanId: String) = log(EVENT_PURCHASE_STARTED, bundleOf(PARAM_BASE_PLAN to basePlanId))
     fun logPurchaseCompleted(basePlanId: String) = log(EVENT_PURCHASE_COMPLETED, bundleOf(PARAM_BASE_PLAN to basePlanId))
     fun logPurchaseFailed(reason: String) = log(EVENT_PURCHASE_FAILED, bundleOf(PARAM_REASON to reason))
+    fun logTrialStarted() = log(EVENT_TRIAL_STARTED)
+    fun logTrialExpired() = log(EVENT_TRIAL_EXPIRED)
+    fun logSubscriptionRestored() = log(EVENT_SUBSCRIPTION_RESTORED)
 
     private fun log(name: String, params: Bundle? = null) {
         firebaseAnalytics?.logEvent(name, params)
@@ -44,6 +47,9 @@ object Analytics {
     private const val EVENT_PURCHASE_STARTED = "purchase_started"
     private const val EVENT_PURCHASE_COMPLETED = "purchase_completed"
     private const val EVENT_PURCHASE_FAILED = "purchase_failed"
+    private const val EVENT_TRIAL_STARTED = "trial_started"
+    private const val EVENT_TRIAL_EXPIRED = "trial_expired"
+    private const val EVENT_SUBSCRIPTION_RESTORED = "subscription_restored"
     private const val PARAM_SOURCE = "source"
     private const val PARAM_BASE_PLAN = "base_plan"
     private const val PARAM_REASON = "reason"

@@ -43,7 +43,7 @@ import com.example.ui.theme.PremiumGrayMedium
 // Reachable from Dashboard bottom nav (tab index 4). Shows app identity, the
 // AI model used for pose/coaching analysis, and a tappable support email.
 @Composable
-fun AboutTab(isPro: Boolean, onUpgradeClick: () -> Unit) {
+fun AboutTab(isPro: Boolean, trialDaysRemaining: Int, onUpgradeClick: () -> Unit, onManageSubscription: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     val supportEmail = "support@agentlabs.cc"
 
@@ -117,6 +117,15 @@ fun AboutTab(isPro: Boolean, onUpgradeClick: () -> Unit) {
                         fontSize = 13.sp,
                         color = PremiumGrayMedium
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onManageSubscription,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Manage subscription", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
                 } else {
                     Text(
                         text = "Kinetic Pro",
@@ -125,6 +134,15 @@ fun AboutTab(isPro: Boolean, onUpgradeClick: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
+                    if (trialDaysRemaining > 0) {
+                        Text(
+                            text = "You have $trialDaysRemaining day${if (trialDaysRemaining == 1) "" else "s"} left in your free trial.",
+                            fontSize = 13.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
                     Text(
                         text = "Unlock unlimited AI-analyzed classes, coach photo/video/file uploads, " +
                             "and full analytics.",
