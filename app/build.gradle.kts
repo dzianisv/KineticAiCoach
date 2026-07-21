@@ -133,6 +133,7 @@ dependencies {
   implementation(libs.billing.ktx)
   implementation(libs.firebase.analytics)
   implementation(libs.firebase.crashlytics)
+  implementation(libs.firebase.config)
   implementation(libs.firebase.functions)
 
   // Firebase Auth with Google Sign-In requires all of the following to be uncommented together.
