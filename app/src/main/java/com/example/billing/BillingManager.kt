@@ -5,12 +5,16 @@ import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
 import com.example.analytics.Analytics
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Owns the Google Play Billing lifecycle for the "Kinetic Pro" subscription.
@@ -28,6 +32,7 @@ class BillingManager(
     data class PlanOffer(
         val basePlanId: String,
         val formattedPrice: String,   // e.g. "$9.99" — the recurring price, NOT the trial's $0
+        val priceAmountMicros: Long,  // raw recurring price in micros (1_000_000 micros = 1 currency unit) for dynamic savings math
         val billingPeriod: String,    // e.g. "P1M" / "P1Y" (ISO-8601 duration of the recurring phase)
         val freeTrialDays: Int?       // parsed from a $0 intro pricing phase if present, else null
     )
@@ -51,6 +56,9 @@ class BillingManager(
 
     /** Offer token to use when launching the flow, keyed by base plan id. */
     private val offerTokensByBasePlan = mutableMapOf<String, String>()
+
+    /** Firebase Callable client for best-effort server-side purchase verification. */
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance()
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context.applicationContext)
         .setListener(this)
@@ -152,6 +160,7 @@ class BillingManager(
         return PlanOffer(
             basePlanId = basePlanId,
             formattedPrice = recurring.formattedPrice,
+            priceAmountMicros = recurring.priceAmountMicros,
             billingPeriod = recurring.billingPeriod,
             freeTrialDays = freeTrialDays
         )
@@ -242,6 +251,7 @@ class BillingManager(
             billingClient.acknowledgePurchase(ackParams) { ackResult ->
                 if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     _isPro.value = true
+                    verifyPurchaseServerSide(purchase)
                     Analytics.logPurchaseCompleted(resolveBasePlanId(purchase))
                 } else {
                     Log.w(TAG, "acknowledgePurchase failed: ${ackResult.responseCode} ${ackResult.debugMessage}")
@@ -250,6 +260,7 @@ class BillingManager(
         } else {
             // Already acknowledged: covers the queryPurchasesAsync restore path.
             _isPro.value = true
+            verifyPurchaseServerSide(purchase)
         }
     }
 
@@ -258,6 +269,53 @@ class BillingManager(
      * "unknown" unless it becomes resolvable in a future API.
      */
     private fun resolveBasePlanId(purchase: Purchase): String = "unknown"
+
+    /**
+     * Fire-and-forget, best-effort server-side verification of a purchase via the
+     * `verifySubscription` callable Firebase Function.
+     */
+    private fun verifyPurchaseServerSide(purchase: Purchase) {
+        // TODO(server-verification): This call is best-effort/non-blocking and does NOT gate
+        // entitlement today — entitlement is granted from the local acknowledge+state check above.
+        // Once the verifySubscription Cloud Function calls the real Play Developer API
+        // (purchases.subscriptionsv2.get), this should become the source of truth and this call
+        // site should be revisited to react to a negative verification result (e.g. revoke isPro).
+        externalScope.launch {
+            try {
+                val data = hashMapOf(
+                    "purchaseToken" to purchase.purchaseToken,
+                    "productId" to (purchase.products.firstOrNull() ?: BillingConfig.PRODUCT_ID_PRO)
+                )
+                val result = withContext(Dispatchers.IO) {
+                    Tasks.await(functions.getHttpsCallable("verifySubscription").call(data))
+                }
+                Log.d(TAG, "verifySubscription (non-blocking) result: ${result.data}")
+            } catch (e: Exception) {
+                Log.w(TAG, "verifySubscription call failed (non-blocking, entitlement unaffected)", e)
+            }
+        }
+    }
+
+    /**
+     * Surfaces Play's own native "payment declined, please fix your payment method"
+     * snackbar (with a deep link into Play to fix it) if the user has a subscription
+     * with a payment issue. This is Google's own recommended client-side mechanism
+     * for grace-period/account-hold messaging without needing Real-Time Developer
+     * Notifications infrastructure. Safe to call anytime (e.g. from onResume of the
+     * screen that hosts the Paywall/About tab); no-ops if there's nothing to show.
+     */
+    fun showInAppMessagesIfNeeded(activity: Activity) {
+        val params = InAppMessageParams.newBuilder()
+            .addInAppMessageCategoryToShow(InAppMessageParams.InAppMessageCategoryId.TRANSACTIONAL)
+            .build()
+        billingClient.showInAppMessages(activity, params) { result ->
+            if (result.responseCode == InAppMessageResult.InAppMessageResponseCode.SUBSCRIPTION_STATUS_UPDATED) {
+                // The user just fixed a payment issue via the in-app message flow.
+                // Re-query purchases so isPro reflects the recovered subscription promptly.
+                queryPurchasesAsync()
+            }
+        }
+    }
 
     /**
      * Re-queries active purchases (startup restore AND user-triggered "Restore
