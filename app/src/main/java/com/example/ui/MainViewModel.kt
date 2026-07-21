@@ -15,6 +15,7 @@ import com.example.analytics.Analytics
 import com.example.billing.BillingConfig
 import com.example.billing.BillingManager
 import com.example.billing.TrialManager
+import com.example.config.RemoteConfigManager
 import com.example.data.AppDatabase
 import com.example.data.Badge
 import com.example.data.FitRepository
@@ -62,6 +63,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val repository = FitRepository(database)
     private val billingManager = BillingManager(application, viewModelScope)
     private val trialManager = TrialManager(application, viewModelScope)
+    private val remoteConfigManager = RemoteConfigManager(application, viewModelScope)
 
     // Flows from database
     val userProfile: StateFlow<UserProfile?> = repository.userProfile
@@ -812,7 +814,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         get() = todaysClass.value.getOrNull(_currentClassIndex.value)?.name ?: "Workout"
 
     /** THE single gate everything must check before starting a Gemini-analyzed class or sending a coach message. */
-    fun isEntitled(): Boolean = isPro.value || trialManager.isTrialActive()
+    fun isEntitled(): Boolean {
+        // Remote Config "paywall kill-switch": while monetization isn't live yet
+        // (no kinetic_pro Play product), paywall_enabled defaults to/stays false and
+        // everyone is fully entitled. Flip it on in the Firebase console once the
+        // Play subscription exists — no app update required.
+        if (!remoteConfigManager.paywallEnabled.value) return true
+        return isPro.value || trialManager.isTrialActive()
+    }
 
     fun triggerPaywall(source: String) {
         _paywallSource.value = source

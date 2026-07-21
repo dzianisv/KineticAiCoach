@@ -145,6 +145,32 @@ fun PaywallScreen(
                             color = PremiumGrayMedium
                         )
                     }
+
+                    // Plans can fail to ever resolve (e.g. no subscription product
+                    // configured in Play Console yet) — never trap the user behind a
+                    // spinner with no way out. Surface this alongside the spinner
+                    // rather than gating it behind a timer, since there's no existing
+                    // state tracking elapsed loading time.
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Subscriptions are temporarily unavailable.",
+                        fontSize = 13.sp,
+                        color = PremiumGrayMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // "Retry" has no real re-fetch path to invoke — BillingManager
+                        // only exposes queryPurchasesAsync() (re-checks purchases, not
+                        // the product catalog) via onRestore, so it wouldn't actually
+                        // reload plans. Treat both actions as a safe dismiss so the
+                        // user is never stuck here.
+                        TextButton(onClick = onDismiss) {
+                            Text("Retry", fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                        Button(onClick = onDismiss) {
+                            Text("Continue", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             } else {
                 val monthly = proPlans.monthly
