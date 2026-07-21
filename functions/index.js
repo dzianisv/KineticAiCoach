@@ -162,3 +162,57 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     });
   }
 });
+
+/**
+ * Cloud Function: verifySubscription
+ *
+ * STUB / scaffold only: this callable currently does not perform any server-side
+ * purchase verification and always returns `verified: false`.
+ *
+ * TODO(server-verification): replace this placeholder with a real Google Play
+ * Developer API verification flow using purchases.subscriptionsv2.get:
+ * https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2/get
+ * The implementation must use a Google Cloud service account scoped for
+ * `androidpublisher`, with "Enable API access" configured and linked in Play
+ * Console for this app. It should fetch subscription state for the provided
+ * purchaseToken/productId and treat SUBSCRIPTION_STATE_ACTIVE (and
+ * SUBSCRIPTION_STATE_IN_GRACE_PERIOD) as entitled before returning `verified: true`.
+ *
+ * The Android client (BillingManager.kt) already invokes this callable
+ * non-blockingly after local purchase acknowledgment for observability/future
+ * hardening only. Entitlement is currently granted client-side from Play Billing
+ * local purchase state + acknowledgment flag. Once server verification becomes the
+ * source of truth, update/remove this comment and gate entitlement on this result.
+ *
+ * Deployment note: do NOT deploy this function as part of this change
+ * (firebase deploy is explicitly out of scope).
+ */
+exports.verifySubscription = functions.https.onCall(async (data, context) => {
+  const uid = context && context.auth && typeof context.auth.uid === "string"
+    ? context.auth.uid.trim()
+    : "";
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Authentication is required to verify subscriptions."
+    );
+  }
+
+  const purchaseToken = data && typeof data.purchaseToken === "string"
+    ? data.purchaseToken.trim()
+    : "";
+  if (!purchaseToken) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Missing required 'purchaseToken' string."
+    );
+  }
+
+  console.log("verifySubscription called", { uid, purchaseToken });
+
+  return {
+    verified: false,
+    subscriptionState: "UNVERIFIED",
+    message: "Server-side verification not yet implemented; entitlement is currently granted client-side via Play Billing purchase acknowledgment only."
+  };
+});
