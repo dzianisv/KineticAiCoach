@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.app.Activity
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +11,9 @@ import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.analytics.Analytics
+import com.example.billing.BillingConfig
+import com.example.billing.BillingManager
 import com.example.data.AppDatabase
 import com.example.data.Badge
 import com.example.data.FitRepository
@@ -33,6 +37,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 // --- G4/G5/G6: Coach tab attachments (image / video / file) ---
 // Kept as its own enum + additive, defaulted fields on ChatMessage so this stays
@@ -52,6 +57,7 @@ data class ChatMessage(
 class MainViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     private val database = AppDatabase.getDatabase(application)
     private val repository = FitRepository(database)
+    private val billingManager = BillingManager(application, viewModelScope)
 
     // Flows from database
     val userProfile: StateFlow<UserProfile?> = repository.userProfile
@@ -65,6 +71,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     val badges: StateFlow<List<Badge>> = repository.badges
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Billing / entitlement state
+    val isPro: StateFlow<Boolean> = billingManager.isPro
+    val proPlans: StateFlow<BillingManager.ProPlans> = billingManager.proPlans
+    val billingConnected: StateFlow<Boolean> = billingManager.isConnected
+
+    private val _showPaywall = MutableStateFlow(false)
+    val showPaywall: StateFlow<Boolean> = _showPaywall.asStateFlow()
+
+    private val _paywallSource = MutableStateFlow("")
+    val paywallSource: StateFlow<String> = _paywallSource.asStateFlow()
 
     // Chat states
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
@@ -85,6 +102,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private var isTtsInitialized = false
 
     init {
+        Analytics.init(application)
         // Initialize Database and Seeding
         viewModelScope.launch {
             repository.checkAndSeedDatabase()
@@ -145,6 +163,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             // onSignedIn handles blank uid gracefully (local-only: pull/push no-op,
             // remote treated as absent), so a separate blank-uid branch is unnecessary.
             repository.onSignedIn(uid, name, email)
+            Analytics.logSignInSuccess()
             if (uid.isNotBlank()) {
                 repository.syncChatMessagesFromCloud(uid)
                 loadPersistedChatMessages()
@@ -198,6 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             }
 
             repository.saveProfile(profile.copy(workoutProgram = generatedText))
+            Analytics.logProgramGenerated()
             _isGeneratingProgram.value = false
 
             // Add to chat as well
@@ -244,6 +264,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     /** G4: user picked an image via PickVisualMedia(ImageOnly). */
     fun sendImageMessage(imageUri: Uri, caption: String) {
+        if (!isPro.value) {
+            triggerPaywall("coach_upload")
+            return
+        }
         val userMsg = ChatMessage(
             sender = "user",
             text = caption,
@@ -297,6 +321,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
      * inline via VideoView (see CoachAttachments.kt).
      */
     fun sendVideoMessage(videoUri: Uri, caption: String) {
+        if (!isPro.value) {
+            triggerPaywall("coach_upload")
+            return
+        }
         val userMsg = ChatMessage(
             sender = "user",
             text = caption,
@@ -346,6 +374,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     /** G6: user picked a document (PDF / text / other) via GetContent with a wildcard mime filter. */
     fun sendFileMessage(fileUri: Uri, fileName: String, mimeType: String?, caption: String) {
+        if (!isPro.value) {
+            triggerPaywall("coach_upload")
+            return
+        }
         val userMsg = ChatMessage(
             sender = "user",
             text = caption,
@@ -556,6 +588,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
 
         repository.saveProgram(exercises)
+        Analytics.logProgramGenerated()
         val summary = exercises.joinToString("\n") {
             "- ${it.name}: ${it.targetSets}x${it.targetReps} (rest ${it.restSeconds}s)"
         }
@@ -692,8 +725,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultClassExercises)
 
     // Completed multi-exercise classes for the Dashboard class-history view.
+    // Eagerly (not WhileSubscribed) because canStartAnalyzedClass()/classesCompletedLast7Days()
+    // read `.value` synchronously and must never see a stale-empty list before any UI collects
+    // this flow — that would silently grant unlimited free Gemini-analyzed classes.
     val workoutClasses: StateFlow<List<WorkoutClass>> = repository.workoutClasses
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _currentClassIndex = MutableStateFlow(0)
     val currentClassIndex: StateFlow<Int> = _currentClassIndex.asStateFlow()
@@ -707,10 +743,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val currentClassExerciseName: String
         get() = todaysClass.value.getOrNull(_currentClassIndex.value)?.name ?: "Workout"
 
-    fun startTodaysClass() {
+    /** Count of AI-analyzed classes completed within the rolling FREE_WINDOW_DAYS window. */
+    fun classesCompletedLast7Days(): Int {
+        val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(BillingConfig.FREE_WINDOW_DAYS)
+        return workoutClasses.value.count { it.completedAt >= cutoff }
+    }
+
+    /** Remaining free classes this rolling week (never negative). For UI display. */
+    fun remainingFreeClasses(): Int =
+        (BillingConfig.FREE_WEEKLY_CLASS_LIMIT - classesCompletedLast7Days()).coerceAtLeast(0)
+
+    /** THE single gate everything must check before starting a Gemini-analyzed class. */
+    fun canStartAnalyzedClass(): Boolean =
+        isPro.value || classesCompletedLast7Days() < BillingConfig.FREE_WEEKLY_CLASS_LIMIT
+
+    fun triggerPaywall(source: String) {
+        _paywallSource.value = source
+        Analytics.logPaywallViewed(source)
+        _showPaywall.value = true
+    }
+
+    fun dismissPaywall() {
+        _showPaywall.value = false
+    }
+
+    fun launchPurchase(activity: Activity, basePlanId: String) {
+        Analytics.logPurchaseStarted(basePlanId)
+        billingManager.launchPurchaseFlow(activity, basePlanId)
+    }
+
+    fun restorePurchases() {
+        billingManager.queryPurchasesAsync()
+    }
+
+    fun startTodaysClass(): Boolean {
+        if (!canStartAnalyzedClass()) {
+            triggerPaywall("class_limit")
+            return false
+        }
         _currentClassIndex.value = 0
         _classResults.value = emptyList()
         classStartedAt = System.currentTimeMillis()
+        Analytics.logClassStarted()
+        return true
     }
 
     fun recordExerciseResult(name: String, reps: Int, sets: Int, formScore: Int, points: Int) {
@@ -748,6 +823,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                 totalPoints = results.sumOf { it.points }
             )
             val classId = repository.saveClass(workoutClass)
+            Analytics.logClassCompleted()
             results.forEach { r ->
                 repository.addWorkoutSession(
                     exerciseName = r.name,

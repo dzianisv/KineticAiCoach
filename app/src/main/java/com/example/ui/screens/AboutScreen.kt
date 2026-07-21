@@ -18,6 +18,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,7 +43,7 @@ import com.example.ui.theme.PremiumGrayMedium
 // Reachable from Dashboard bottom nav (tab index 4). Shows app identity, the
 // AI model used for pose/coaching analysis, and a tappable support email.
 @Composable
-fun AboutTab() {
+fun AboutTab(isPro: Boolean, onUpgradeClick: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     val supportEmail = "support@agentlabs.cc"
 
@@ -85,6 +88,59 @@ fun AboutTab() {
                     fontSize = 13.sp,
                     color = PremiumGrayMedium
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Kinetic Pro card — shows active status or upsell CTA
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PremiumGrayDark),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (isPro) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color.White)
+                        Text(
+                            text = "Kinetic Pro — Active",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 10.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Thanks for supporting Kinetic AI Coach!",
+                        fontSize = 13.sp,
+                        color = PremiumGrayMedium
+                    )
+                } else {
+                    Text(
+                        text = "Kinetic Pro",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Unlock unlimited AI-analyzed classes, coach photo/video/file uploads, " +
+                            "and full analytics.",
+                        fontSize = 13.sp,
+                        color = PremiumGrayMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onUpgradeClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Upgrade to Pro", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
 

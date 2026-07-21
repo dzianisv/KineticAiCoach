@@ -1,5 +1,6 @@
 package com.example
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,6 +28,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.OnboardingChatScreen
+import com.example.ui.screens.PaywallScreen
 import com.example.ui.screens.PoseTrackerScreen
 import com.example.ui.screens.TodaysClassScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -72,11 +75,12 @@ fun MainNavigation() {
         "login"
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.fillMaxSize()
+        ) {
         composable("login") {
             LoginScreen(
                 viewModel = viewModel,
@@ -107,11 +111,15 @@ fun MainNavigation() {
                     navController.navigate("pose_tracker/$exerciseName")
                 },
                 onStartClass = {
-                    viewModel.startTodaysClass()
-                    navController.navigate("todays_class")
+                    if (viewModel.startTodaysClass()) {
+                        navController.navigate("todays_class")
+                    }
                 },
                 onNavigateToOnboarding = {
                     navController.navigate("onboarding")
+                },
+                onUpgradeClick = {
+                    viewModel.triggerPaywall("about_tab")
                 }
             )
         }
@@ -156,6 +164,23 @@ fun MainNavigation() {
                 onDone = {
                     navController.popBackStack("dashboard", inclusive = false)
                 }
+            )
+        }
+        }
+
+        val showPaywall by viewModel.showPaywall.collectAsState()
+        if (showPaywall) {
+            val proPlans by viewModel.proPlans.collectAsState()
+            val billingConnected by viewModel.billingConnected.collectAsState()
+            val activity = LocalContext.current as? Activity
+            PaywallScreen(
+                proPlans = proPlans,
+                isConnected = billingConnected,
+                onSubscribe = { basePlanId ->
+                    activity?.let { viewModel.launchPurchase(it, basePlanId) }
+                },
+                onRestore = { viewModel.restorePurchases() },
+                onDismiss = { viewModel.dismissPaywall() }
             )
         }
     }

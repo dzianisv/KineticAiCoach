@@ -105,7 +105,8 @@ fun DashboardScreen(
     viewModel: MainViewModel,
     onStartWorkout: (String) -> Unit,
     onStartClass: () -> Unit,
-    onNavigateToOnboarding: () -> Unit
+    onNavigateToOnboarding: () -> Unit,
+    onUpgradeClick: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val profile by viewModel.userProfile.collectAsState()
@@ -284,7 +285,10 @@ fun DashboardScreen(
                         1 -> WorkoutsTab(onStartWorkout, onStartClass)
                         2 -> AnalyticsTab(viewModel)
                         3 -> LeaderboardTab(viewModel)
-                        4 -> AboutTab() // GAP G7: About/Help screen
+                        4 -> {
+                            val isPro by viewModel.isPro.collectAsState()
+                            AboutTab(isPro = isPro, onUpgradeClick = onUpgradeClick)
+                        }
                     }
                 }
             }
@@ -401,6 +405,21 @@ fun CoachTab(viewModel: MainViewModel, onEditProfile: () -> Unit) {
                         ) {
                             Text("Generate Program", fontSize = 13.sp, color = Color.Black)
                         }
+                    }
+                }
+
+                val isPro by viewModel.isPro.collectAsState()
+                if (!isPro) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.triggerPaywall("coach_program_card") },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Upgrade to Kinetic Pro for unlimited AI classes", fontSize = 11.sp, color = PremiumGrayMedium)
                     }
                 }
             }
