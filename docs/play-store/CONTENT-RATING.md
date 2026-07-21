@@ -63,15 +63,17 @@ to real or virtual currency purchase.
 |---|---|---|
 | Does the app share the user's location? | No | No location permission is requested (`AndroidManifest.xml` only declares `INTERNET` and `CAMERA`). |
 | Does the app allow users to interact/communicate with each other (chat, share content)? | No | The only "chat" is a 1:1 conversation between the user and the AI coach (Gemini) — there is no user-to-user messaging, forum, or public content sharing. |
-| Does the app allow purchase of digital goods? | No | No billing library is present in `app/build.gradle.kts`; no in-app purchases exist. |
-| Does the app share personal information with third parties? | Yes, limited | Camera-frame montages and chat prompts are sent to Google's Gemini model via our backend proxy to generate coaching feedback — disclose this here and it will also appear in the Data Safety section. Declare "shared with third party for app functionality," not for advertising. |
+| Does the app allow purchase of digital goods? | **Yes** | The app sells the `kinetic_pro` auto-renewing subscription (monthly $7.25 / yearly $43.50 base plans) via Google Play Billing (`billing-ktx` dependency, `app/src/main/java/com/example/billing/BillingConfig.kt`), preceded by a 3-day free trial. Declare digital goods / in-app purchases = Yes and configure the subscription under Play Console's Monetization setup. |
+| Does the app share personal information with third parties? | Yes, limited | Camera-frame montages and chat prompts are sent to Google's Gemini model via our backend proxy to generate coaching feedback; Firebase Analytics and Crashlytics also receive app-usage and crash/diagnostic data; Google Play Billing receives subscription/purchase status. Disclose all of this here and it will also appear in the Data Safety section. Declare "shared with third party for app functionality," not for advertising. |
 
 ## Expected outcome
 
 Given the answers above, IARC should return a rating around **PEGI 3 / ESRB
-Everyone / USK 0** — no age-gating content. The only "sensitive" answer is
-the third-party data sharing note above, which affects the Data Safety
-section, not the age rating.
+Everyone / USK 0** — no age-gating content. The "sensitive" answers are the
+third-party data sharing note and the digital-goods purchase (in-app
+subscription) declared above — these affect the Data Safety and
+Monetization/in-app-purchases sections and the "Offers in-app purchases"
+store badge, not the age rating itself.
 
 ## Before submitting
 

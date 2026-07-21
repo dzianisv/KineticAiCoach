@@ -76,7 +76,7 @@
 <body>
 
 <h1>Privacy Policy</h1>
-<p class="meta">Kinetic AI Coach · Effective date: 20 July 2026 · Published by VibeTechnologies LLC ("AgentLabs", "we", "us")</p>
+<p class="meta">Kinetic AI Coach · Effective date: 21 July 2026 · Published by VibeTechnologies LLC ("AgentLabs", "we", "us")</p>
 
 <p>
   Kinetic AI Coach ("the App") is an Android application that uses your
@@ -99,7 +99,9 @@
     <li>Pose detection runs <strong>on your device</strong>. We do not receive raw video from your camera roll or gallery — the App does not request photo/media storage permission.</li>
     <li><strong>Camera frames are sent off your device</strong> only when needed to power the AI coaching feature: a pose-annotated frame montage is sent, over an encrypted connection, to our backend, which forwards it to Google's Gemini AI model to count reps and generate form tips.</li>
     <li>We use <strong>Firebase Authentication</strong> (Google Sign-In or anonymous "guest" mode) and <strong>Cloud Firestore</strong> to let you optionally save and sync your profile and workout history across devices.</li>
-    <li>We do <strong>not</strong> sell your data, and we do not run advertising or third-party analytics/tracking SDKs in the App.</li>
+    <li>We use <strong>Firebase Analytics</strong> to understand feature usage and <strong>Firebase Crashlytics</strong> to collect crash reports and diagnostic data, so we can fix bugs and improve the App.</li>
+    <li>Kinetic AI Coach offers a <strong>Kinetic Pro</strong> auto-renewing subscription (with a 3-day free trial, no card required upfront) billed through <strong>Google Play Billing</strong>; we do not receive or store your payment card details.</li>
+    <li>We do <strong>not</strong> sell your data, and we do not run advertising SDKs in the App.</li>
     <li>You can use the App as an anonymous guest without providing your name or email at all.</li>
     <li>You can request deletion of your account and data at any time by emailing <a href="mailto:support@agentlabs.cc">support@agentlabs.cc</a>.</li>
   </ul>
@@ -165,11 +167,33 @@
   history persists between sessions.
 </p>
 
-<h3>2.5 Information we do <em>not</em> collect</h3>
+<h3>2.5 Analytics and diagnostic data</h3>
+<p>
+  We use <strong>Firebase Analytics</strong> to understand how the App is
+  used (e.g., which screens and features are used, session length, general
+  engagement patterns) and <strong>Firebase Crashlytics</strong> to collect
+  crash reports and performance/diagnostic data so we can identify and fix
+  bugs. This data is associated with a device/installation identifier, not
+  your name or email, unless you are signed in with Google.
+</p>
+
+<h3>2.6 Subscription and payment information</h3>
+<p>
+  Kinetic AI Coach offers a 3-day free trial (no payment card required
+  upfront), after which continued access to <strong>Kinetic Pro</strong>
+  features is offered as an auto-renewing subscription (monthly or yearly),
+  billed and managed entirely through <strong>Google Play Billing</strong>.
+  We receive your subscription/purchase status (e.g., active, trial,
+  cancelled) from Google Play so the App can unlock the right features —
+  we do not receive, process, or store your payment card or other payment
+  instrument details; Google Play handles that directly.
+</p>
+
+<h3>2.7 Information we do <em>not</em> collect</h3>
 <ul>
   <li>We do not collect precise or approximate location.</li>
-  <li>We do not access your contacts, calendar, or files.</li>
-  <li>We do not run advertising SDKs, ad IDs, or third-party analytics/crash-tracking SDKs.</li>
+  <li>We do not access your contacts, calendar, or files (other than a photo/video/file you explicitly choose to attach in the coach chat feature).</li>
+  <li>We do not run advertising SDKs or advertising IDs.</li>
   <li>We do not sell your personal information to anyone.</li>
 </ul>
 
@@ -179,6 +203,8 @@
   <li><strong>To personalize your experience:</strong> generating a weekly workout program and coach responses tailored to your stated goals.</li>
   <li><strong>To let you keep your progress:</strong> syncing your profile and workout history across devices when you're signed in.</li>
   <li><strong>To operate light gamification features:</strong> streaks, XP, badges, and an optional leaderboard.</li>
+  <li><strong>To understand and improve the App:</strong> Firebase Analytics usage patterns and Firebase Crashlytics crash/diagnostic reports.</li>
+  <li><strong>To manage your subscription:</strong> your Kinetic Pro trial/subscription status from Google Play Billing determines which features are unlocked.</li>
   <li><strong>To respond to support requests</strong> you send to support@agentlabs.cc.</li>
 </ul>
 <p>We do not use your data for advertising or to build advertising profiles.</p>
@@ -188,6 +214,9 @@
   <tr><th>Recipient</th><th>What is shared</th><th>Why</th></tr>
   <tr><td>Google Firebase (Authentication, Cloud Firestore, Cloud Functions)</td><td>Account identifiers, name/email (if signed in with Google), workout/profile data, chat text, camera-frame montages in transit through our Cloud Function</td><td>Firebase is our backend infrastructure provider — it hosts sign-in, data storage/sync, and the secure proxy that talks to the AI model</td></tr>
   <tr><td>Google Gemini model (Vertex AI)</td><td>Pose-annotated camera-frame montages and chat prompt text</td><td>To generate rep counts, technique tips, and coach chat responses</td></tr>
+  <tr><td>Firebase Analytics</td><td>App interaction/usage events, device/installation identifier</td><td>To understand feature usage and improve the App</td></tr>
+  <tr><td>Firebase Crashlytics</td><td>Crash reports, diagnostic/performance data, device/installation identifier</td><td>To identify and fix bugs and stability issues</td></tr>
+  <tr><td>Google Play Billing</td><td>Subscription/purchase status (e.g., trial active, subscribed, cancelled)</td><td>To manage your Kinetic Pro free trial and subscription; Google Play processes your payment details directly — we never receive your card information</td></tr>
 </table>
 <p>
   These are <strong>service providers</strong> that process data on our
@@ -208,6 +237,7 @@
 <ul>
   <li>Camera-frame montages sent for AI analysis are used to generate a response and are not retained beyond that request.</li>
   <li>Workout history, profile, and chat data are retained locally on your device, and in Cloud Firestore if you're signed in, for as long as you keep the App installed and your account active.</li>
+  <li>Firebase Analytics and Crashlytics data are retained according to Google's standard retention periods for those services, and may be retained in de-identified, aggregate form (e.g., crash reports) even after an account deletion request.</li>
   <li>You can delete the App at any time to remove all locally stored data from your device.</li>
   <li>To request deletion of your account and any associated data stored in our backend (Firebase Authentication + Cloud Firestore), email <a href="mailto:support@agentlabs.cc">support@agentlabs.cc</a> from the email associated with your account (or describe your guest session if you used Guest mode). We will act on verified deletion requests within a reasonable time.</li>
 </ul>
@@ -216,6 +246,7 @@
 <ul>
   <li><strong>Use the App without an account:</strong> choose Guest mode at sign-in to skip providing your name or email.</li>
   <li><strong>Camera permission:</strong> you can deny or revoke camera permission in Android Settings at any time; the AI form-tracking feature will not function without it, but other parts of the App (chat, program planning) remain usable.</li>
+  <li><strong>Manage or cancel your subscription:</strong> your Kinetic Pro free trial or subscription is managed entirely through your Google Play account settings, where you can view, change, or cancel it at any time.</li>
   <li><strong>Delete your data:</strong> see Section 6.</li>
 </ul>
 
@@ -244,11 +275,15 @@
 </p>
 
 <footer>
-  This page is served as a static file at
-  <code>docs/privacy-policy.html</code> in the
+  This page is the canonical privacy policy for Kinetic AI Coach, served as
+  a static file at <code>docs/privacy-policy.html</code> in the
   <code>dzianisv/KineticAiCoach</code> GitHub repository, published via
-  GitHub Pages, so it has a stable public URL for use in the Google Play
-  Console store listing.
+  GitHub Pages at
+  <a href="https://dzianisv.github.io/KineticAiCoach/privacy-policy.html">https://dzianisv.github.io/KineticAiCoach/privacy-policy.html</a>
+  — this is the URL to enter in the Google Play Console store listing. A
+  duplicate copy is kept in sync at
+  <code>docs/play-store/privacy-policy.html</code> alongside the other Play
+  Store submission assets; both files must be updated together.
 </footer>
 
 </body>
