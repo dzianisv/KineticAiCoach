@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kinetic AI Fitness Coach — AI form coach, rep counter &amp; live pose feedback</title>
+  <meta name="description" content="AI personal trainer: rep counter, form correction, live pose feedback. Now in early access on Google Play for Android 7.0+." />
+  <meta name="theme-color" content="#0e1116" />
+  <meta property="og:title" content="Kinetic AI Fitness Coach" />
+  <meta property="og:description" content="AI personal trainer: rep counter, form correction, live pose feedback." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="play-store/feature-graphic.png" />
+  <style>
+    :root {
+      --bg: #0e1116;
+      --bg-2: #161b22;
+      --card: #1b2230;
+      --border: #2a3342;
+      --text: #e8ecf1;
+      --muted: #9aa6b6;
+      --accent: #37e0a6;
+      --accent-2: #2bb98a;
+      --accent-ink: #06231a;
+      --focus: #7cd7ff;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+    .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+    a.cta, .cta {
+      display: inline-block;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: var(--accent-ink);
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      padding: 14px 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    a.cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(55,224,166,0.25); }
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    /* Header / nav */
+    header.site {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(14,17,22,0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .nav a.small { color: var(--text); text-decoration: none; font-size: .95rem; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 64px 0 48px;
+      background:
+        radial-gradient(1000px 400px at 50% -120px, rgba(55,224,166,0.14), transparent 60%),
+        var(--bg);
+    }
+    .hero img.icon {
+      width: 108px; height: 108px; border-radius: 24px; margin: 0 auto 22px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    .hero h1 { font-size: 2.4rem; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
+    .hero p.lead { font-size: 1.2rem; color: var(--muted); max-width: 620px; margin: 0 auto 28px; }
+    .hero .subtext { color: var(--muted); font-size: .9rem; margin-top: 14px; }
+    .badge {
+      display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--accent);
+      background: rgba(55,224,166,0.1); border: 1px solid rgba(55,224,166,0.3);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 20px;
+    }
+
+    section { padding: 56px 0; border-top: 1px solid var(--border); }
+    section h2 { font-size: 1.8rem; text-align: center; margin: 0 0 8px; letter-spacing: -0.01em; }
+    section .sub { text-align: center; color: var(--muted); max-width: 620px; margin: 0 auto 36px; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .step {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 22px; text-align: center;
+    }
+    .step .num {
+      width: 44px; height: 44px; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.2rem;
+      color: var(--accent-ink); background: var(--accent);
+      border-radius: 50%;
+    }
+    .step h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .step p { margin: 0; color: var(--muted); }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .feature {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+    }
+    .feature h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    .feature p { margin: 0; color: var(--muted); font-size: .97rem; }
+
+    /* Screenshots */
+    .gallery {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+    }
+    .shot {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px; text-align: center;
+    }
+    .shot img { border-radius: 12px; margin: 0 auto 10px; }
+    .shot figcaption { color: var(--muted); font-size: .85rem; }
+    @media (max-width: 900px) {
+      .gallery {
+        display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+        gap: 14px; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+      }
+      .shot { flex: 0 0 72%; scroll-snap-align: center; }
+    }
+
+    /* FAQ */
+    .faq { max-width: 760px; margin: 0 auto; }
+    details {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 4px 20px; margin-bottom: 14px;
+    }
+    details summary {
+      cursor: pointer; font-weight: 700; font-size: 1.05rem; padding: 16px 0;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::after { content: "+"; float: right; color: var(--accent); font-weight: 800; }
+    details[open] summary::after { content: "\2212"; }
+    details p { color: var(--muted); margin: 0 0 18px; }
+
+    /* Final CTA */
+    .final { text-align: center; }
+
+    /* Footer */
+    footer.site {
+      border-top: 1px solid var(--border);
+      padding: 34px 0; text-align: center; color: var(--muted); font-size: .92rem;
+    }
+    footer.site a { color: var(--text); text-decoration: none; margin: 0 10px; }
+    footer.site a:hover { color: var(--accent); }
+    footer .copy { margin-top: 14px; }
+
+    @media (max-width: 760px) {
+      .hero h1 { font-size: 2rem; }
+      .steps { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 761px) and (max-width: 900px) {
+      .features { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap nav">
+      <div class="brand">
+        <img src="play-store/hi-res-icon-512.png" alt="Kinetic AI Fitness Coach app icon" />
+        <span>Kinetic AI Fitness Coach</span>
+      </div>
+      <a class="small" href="#faq">FAQ</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="border-top:none;">
+      <div class="wrap">
+        <span class="badge">Now in early access</span>
+        <img class="icon" src="play-store/hi-res-icon-512.png" alt="Kinetic AI Fitness Coach app icon" />
+        <h1>Kinetic AI Fitness Coach</h1>
+        <p class="lead">AI personal trainer: rep counter, form correction, live pose feedback.</p>
+        <a class="cta" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm" target="_blank" rel="noopener noreferrer">Get Early Access on Google Play</a>
+        <p class="subtext">Now in early access — Android 7.0+</p>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <p class="sub">Point your camera at yourself and train — no wearables, no gym check-in.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="num" aria-hidden="true">1</div>
+            <h3>Point your camera at yourself</h3>
+            <p>Set your phone down, step back, and start your set — just your phone and enough space to move.</p>
+          </div>
+          <div class="step">
+            <div class="num" aria-hidden="true">2</div>
+            <h3>AI watches your form</h3>
+            <p>On-device pose detection draws a live skeleton overlay while AI counts your reps and sets.</p>
+          </div>
+          <div class="step">
+            <div class="num" aria-hidden="true">3</div>
+            <h3>Hear real-time spoken coaching</h3>
+            <p>Text-to-speech reads your form tips and rep counts aloud, so you never break form to check the screen.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>What you get</h2>
+        <p class="sub">A pose-detection form checker, an AI coach, and a workout tracker in one app.</p>
+        <div class="features">
+          <div class="feature">
+            <h3>Real-time pose detection</h3>
+            <p>On-device machine learning tracks your joints live and overlays a skeleton on your camera feed, so you see exactly how your body is moving.</p>
+          </div>
+          <div class="feature">
+            <h3>AI form correction &amp; rep counting</h3>
+            <p>Your annotated workout video is analyzed by Google Gemini through the app's secure backend, counting your sets and reps and critiquing your technique.</p>
+          </div>
+          <div class="feature">
+            <h3>Coaching out loud</h3>
+            <p>Text-to-speech reads form tips and rep counts aloud mid-set, so you never have to break form to read your phone.</p>
+          </div>
+          <div class="feature">
+            <h3>AI-generated workout programs</h3>
+            <p>Tell the coach your goals and get a personalized training plan built for you — not a generic template.</p>
+          </div>
+          <div class="feature">
+            <h3>Conversational AI coach chat</h3>
+            <p>Ask your coach anything, and send photos, video, or files for feedback — not just text.</p>
+          </div>
+          <div class="feature">
+            <h3>Guest mode, no signup required</h3>
+            <p>Train instantly as an anonymous guest, or sign in with Google to sync your history securely with Firebase.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenshots">
+      <div class="wrap">
+        <h2>See it in action</h2>
+        <p class="sub">Real screens from the app.</p>
+        <div class="gallery">
+          <figure class="shot">
+            <img src="play-store/screenshots/01-coach-ai.png" width="1080" height="2072" alt="Ask your coach anything." />
+            <figcaption>Ask your coach anything.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="play-store/screenshots/02-workouts.png" width="1080" height="2072" alt="AI counts your reps and corrects your form." loading="lazy" />
+            <figcaption>AI counts your reps and corrects your form.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="play-store/screenshots/03-todays-class.png" width="1080" height="2072" alt="A plan built around your goals." loading="lazy" />
+            <figcaption>A plan built around your goals.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="play-store/screenshots/04-analytics.png" width="1080" height="2072" alt="Track every session." loading="lazy" />
+            <figcaption>Track every session.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="play-store/screenshots/05-about.png" width="1080" height="2072" alt="Your AI coach watches your form — live." loading="lazy" />
+            <figcaption>Your AI coach watches your form — live.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <h2>Frequently asked questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Is it free?</summary>
+            <p>It's free to start during early access with a 3-day free trial — no credit card required upfront. After the trial, continued access to Kinetic Pro coaching features is an optional auto-renewing subscription billed through Google Play. You can cancel anytime in your Google Play account settings; the price is shown on the Play listing and inside the app before you subscribe.</p>
+          </details>
+          <details>
+            <summary>Do I need equipment?</summary>
+            <p>No. Just your phone and enough space to move. It works for bodyweight and home workouts — no wearables, weights, or gym required.</p>
+          </details>
+          <details>
+            <summary>Does it work offline?</summary>
+            <p>Pose tracking and the live skeleton overlay run on-device. AI form feedback, rep counting via Gemini, and the AI chat coach need an internet connection.</p>
+          </details>
+          <details>
+            <summary>Is my camera data private?</summary>
+            <p>Pose detection runs on-device. Camera frames are only sent off-device — over an encrypted connection through the app's backend to Google's Gemini model — when needed to analyze a set for rep counting and coaching feedback, for that single purpose. Guest mode requires no account at all. See our <a href="privacy-policy.html">Privacy Policy</a> for full detail.</p>
+          </details>
+          <details>
+            <summary>What devices are supported?</summary>
+            <p>Android 7.0 and up.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <h2>Start training with your AI coach</h2>
+        <p class="sub">Now in early access on Google Play.</p>
+        <a class="cta" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm" target="_blank" rel="noopener noreferrer">Get Early Access on Google Play</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <nav aria-label="Footer">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="mailto:support@agentlabs.cc">Support</a>
+      </nav>
+      <div class="copy">&copy; 2026 VIBE TECHNOLOGIES LLC</div>
+    </div>
+  </footer>
+</body>
+</html>
