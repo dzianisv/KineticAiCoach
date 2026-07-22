@@ -74,7 +74,7 @@ interface FirebaseProxyService {
 }
 
 interface GeminiApiService {
-    @POST("v1beta/models/gemini-2.5-flash:generateContent")
+    @POST("v1beta/models/gemini-3.6-flash:generateContent")
     suspend fun generateContent(
         @Query("key") apiKey: String,
         @Body request: GenerateContentRequest

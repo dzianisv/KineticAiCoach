@@ -28,7 +28,7 @@ flowchart LR
   end
   BUF -->|"Retrofit / OkHttp + Firebase ID token"| PROXY
   subgraph Cloud["Cloud"]
-    PROXY["GenAI lambda proxy<br/>Firebase Cloud Function geminiProxy<br/>(Node.js, hides API key,<br/>verifies Firebase ID token)"] --> LLM["gemini-3.5-flash<br/>Vertex AI<br/>(counts sets + reps,<br/>returns technique tips)"]
+    PROXY["GenAI lambda proxy<br/>Firebase Cloud Function geminiProxy<br/>(Node.js, hides API key,<br/>verifies Firebase ID token)"] --> LLM["gemini-3.6-flash<br/>Vertex AI<br/>(counts sets + reps,<br/>returns technique tips)"]
   end
   LLM -->|"sets, reps, tips"| TTS["Android TextToSpeech (TTS)<br/>speaks the tips"]
   AUTH["Firebase Auth<br/>(anonymous + Google Sign-In)"] -.-> PROXY
@@ -46,7 +46,7 @@ flowchart LR
 | Overlay | Compose Canvas, red bones |
 | Networking | Retrofit + OkHttp |
 | Backend proxy | Firebase Cloud Functions, Node.js |
-| LLM | Vertex AI gemini-3.5-flash |
+| LLM | Vertex AI gemini-3.6-flash |
 | Auth | Firebase Auth |
 | Local DB | Room |
 | Cloud sync | Cloud Firestore |

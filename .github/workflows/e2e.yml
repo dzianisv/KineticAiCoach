@@ -15,6 +15,8 @@ jobs:
       # Prefer the repo variable; fall back to the known deployed URL if unset.
       PROXY_URL: ${{ vars.PROXY_URL || 'https://us-central1-kinetic-ai-coach-50627.cloudfunctions.net/geminiProxy' }}
       FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+      # Guard against model regressions: assert the live proxy serves this exact model.
+      EXPECT_MODEL: gemini-3.6-flash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
