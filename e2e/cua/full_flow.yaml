@@ -1,83 +1,94 @@
 name: full_flow
 package: com.aistudio.aicoach.vtzrkm
-# PRD v2 end-to-end journey, driven entirely through the guest (Firebase
-# anonymous) path so it runs on an emulator with no Google Play Services.
-# Flow: guest login -> conversational coach onboarding (height/weight/goal/days)
-# -> program built -> Start today's class -> simulated multi-exercise workout
-# -> end-of-class results table -> back on dashboard/history.
+# PRD v2 end-to-end journey through the guest (Firebase anonymous) path, exercising
+# the REAL workout intelligence via the deterministic "demo feed" (a flag file at
+# /sdcard/Android/data/<pkg>/files/demo_feed makes Today's Class replay 43 bundled
+# squat frames through the SAME pipeline the live camera uses).
+#
+# Flow: guest login -> conversational coach onboarding -> program built ->
+# Start today's class -> AI-DRIVEN workout (ML Kit red pose skeleton drawn on each
+# frame, montages streamed to gemini-3.5-flash which COUNTS reps/sets, TTS speaks
+# cues, class AUTO-ADVANCES exercises) -> "Class Complete!" results table.
 goal: >
-  You are testing the "AI Coach" fitness Android app end to end. Follow these
-  steps in order, looking at each screenshot before acting. Be patient: after
-  taps that trigger network or navigation, wait a few seconds for the next
-  screen.
+  You are testing the "AI Coach" fitness Android app end to end. Look at each
+  screenshot before acting. Be patient: after taps that trigger network or
+  navigation, wait several seconds for the next screen.
 
-  IMPORTANT: If at any point a SYSTEM dialog appears titled "System UI isn't
-  responding", "Launcher isn't responding", or any "... isn't responding" /
-  "Application not responding" dialog, tap the "Wait" button to dismiss it and
-  continue. That is a transient emulator hiccup, not an app failure. Only an
-  "AI Coach keeps stopping" / "aicoach has stopped" app-crash dialog is a real
-  failure.
+  IMPORTANT: If a SYSTEM dialog appears titled "System UI isn't responding",
+  "Launcher isn't responding", "Isn't responding" or "Application not responding",
+  tap "Wait" to dismiss it and continue — that is a transient emulator hiccup, not
+  an app failure. Only an "AI Coach keeps stopping" / "aicoach has stopped" app
+  dialog is a real failure.
 
-  1. LOGIN: The app opens on a login screen with the title "AI COACH", a "Sign
-     in with Google" button, and a "Continue as Guest" button. Tap "Continue as
+  1. LOGIN: The app opens on a login screen titled "AI COACH" with a "Sign in
+     with Google" button and a "Continue as Guest" button. Tap "Continue as
      Guest" (the outlined/secondary button, NOT the Google button). Wait for
      Firebase anonymous sign-in.
 
-  2. COACH ONBOARDING CHAT: A chat screen appears where an AI coach asks you
-     questions to build a program. When the coach asks for your HEIGHT, tap the
-     text input at the bottom, type "175 cm", and send. When it asks for your
-     WEIGHT, type "70 kg" and send. When it asks about your GOALS, type "build
-     muscle and get fit" and send. When it asks how many DAYS per week you can
-     train, type "3 days" and send. Answer whatever the coach asks with a short
-     sensible reply; always use the text box and the send button. Wait after
-     each send for the coach to reply.
+  2. COACH ONBOARDING CHAT: A chat screen appears where an AI coach asks
+     questions to build a program. When it asks for HEIGHT, tap the text input at
+     the bottom, type "175 cm", and send. For WEIGHT type "70 kg". For GOALS type
+     "build muscle and get fit". For DAYS per week type "3 days". Answer whatever
+     else it asks with a short sensible reply, always using the text box and send
+     button. Wait after each send for the coach to reply.
 
   3. PROGRAM READY: The coach says the program is ready (you may see a list of
-     exercises). Tap the button that continues to the app (labelled something
-     like "Program ready", "Start", "Let's go", "Done", or "Continue"). You
-     should land on a dashboard/home screen.
+     exercises). Tap the button that continues into the app ("Program ready",
+     "Start", "Let's go", "Done", or "Continue"). You should land on a
+     dashboard/home screen.
 
-  4. START CLASS: On the dashboard, find and tap the "Start today's class"
-     button.
+  4. START CLASS: On the dashboard, find and tap "Start today's class".
 
-  5. WORKOUT: A workout screen shows the current exercise name and a rep counter
-     that increases on its own over a few seconds (a simulated live workout).
-     Wait ~5 seconds for reps to count up, then tap the button to finish the set
-     and move on (labelled like "Next exercise", "Set done", "Next", or
-     "Finish"). Repeat this for every exercise in the class until no more remain.
+  5. AI WORKOUT — WAIT AND OBSERVE, DO NOT TAP: The workout screen shows a camera
+     panel labelled "Demo Feed - Live AI" with a person doing squats and a RED
+     pose skeleton drawn over them, a rep counter, a set counter, and a coaching
+     cue line. The reps and sets are counted by a real AI analysing the motion
+     over the network, so they update gradually every several seconds, NOT
+     instantly. This workout runs and advances through its exercises entirely on
+     its own. Your ONLY job here is to WAIT and take screenshots to watch
+     progress. DO NOT tap "Next exercise", "Skip", "Finish", or any workout
+     control — tapping would skip the AI counting and invalidate the test. Simply
+     wait patiently (each exercise can take 30-90 seconds of analysis) and keep
+     observing until the class finishes on its own and the results screen appears.
+     The ONLY exception: if the exact same frame is frozen with zero progress for
+     a very long time AND a "Next exercise" button is clearly visible, you may tap
+     it once to unstick — otherwise never tap.
 
-  6. RESULTS: After you finish the LAST exercise, a results screen titled
-     "Class Complete!" appears with a table listing each exercise and its
-     reps / form score / points plus a TOTAL row. The MOMENT you see the words
-     "Class Complete!", the test is done: report TEST_PASSED immediately and take
-     NO further action. Do NOT tap "Done", do NOT tap the bottom navigation, do
-     NOT start another class.
+  6. RESULTS: When the class finishes, a results screen titled "Class Complete!"
+     appears with a table listing each exercise and its reps / sets / form score /
+     points plus a TOTAL row. The MOMENT you see "Class Complete!", the test is
+     done: report TEST_PASSED immediately and take NO further action. Do NOT tap
+     "Done", the bottom navigation, or start another class.
 
   Report TEST_PASSED as soon as the "Class Complete!" results table is visible,
-  having gone through login, onboarding chat, and all workout exercises. Never
-  tap anything once "Class Complete!" is on screen.
+  having gone through login, onboarding chat, and the AI-driven workout. Never tap
+  anything once "Class Complete!" is on screen.
 successCriteria:
   - Tapped "Continue as Guest" and left the login screen
   - Answered the coach's onboarding questions in the chat and a program was built
-  - Tapped "Start today's class" and went through the workout exercises
-  - The "Class Complete!" end-of-class results table (per-exercise reps/form/
+  - Tapped "Start today's class" and reached the AI workout screen showing the red
+    pose skeleton over the demo squat feed
+  - The rep and/or set counter advanced during the workout (AI counted motion)
+  - The "Class Complete!" end-of-class results table (per-exercise reps/sets/form/
     points with a TOTAL row) was shown and left visible
 failureCriteria:
   - The AI Coach app itself crashes with an app dialog such as "AI Coach keeps
-    stopping" or "aicoach has stopped" (a system "isn't responding" dialog is
-    NOT an app failure — dismiss it with "Wait" and continue)
+    stopping" or "aicoach has stopped" (a system "isn't responding" dialog is NOT
+    an app failure — dismiss it with "Wait" and continue)
   - The flow gets stuck on the login screen after tapping "Continue as Guest"
   - The onboarding chat never accepts input or never produces a program
-  - The Start today's class button cannot be found or does nothing
+  - The "Start today's class" button cannot be found or does nothing
+  - The workout screen never shows a pose skeleton / demo feed, or the results
+    table never appears
   - Only a blank white/black screen is shown with no UI
 verification:
   prompt: >
     Look at this screenshot from the AI Coach Android app, taken at the END of an
     automated end-to-end test that logged in as guest, completed a chat
-    onboarding, and ran a multi-exercise workout class. Answer strictly YES or
-    NO: Does the screenshot show an end-of-class results/summary screen — a
-    "Class Complete!" heading and/or a table listing exercises with reps, a form
+    onboarding, and ran an AI-counted workout class. Answer strictly YES or NO:
+    Does the screenshot show an end-of-class results/summary screen — a "Class
+    Complete!" heading and/or a table listing exercises with reps, sets, a form
     score, or points and a TOTAL row? A login screen, a mid-workout exercise
     screen, a plain dashboard, a blank screen, or a crash dialog counts as NO.
     Answer YES or NO, then one sentence of evidence.
-maxSteps: 60
+maxSteps: 90
