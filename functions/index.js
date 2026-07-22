@@ -131,9 +131,9 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     if (responseMimeType) generationConfig.responseMimeType = responseMimeType;
 
     // Model is configurable via the GENAI_MODEL env var. Defaults to
-    // gemini-3.5-flash (served from the `global` Vertex location) — the model the
+    // gemini-3.6-flash (served from the `global` Vertex location) — the model the
     // PRD requires. Override GENAI_MODEL to flip without a source change.
-    const modelName = process.env.GENAI_MODEL || "gemini-3.5-flash";
+    const modelName = process.env.GENAI_MODEL || "gemini-3.6-flash";
     const response = await ai.models.generateContent({
       model: modelName,
       contents,

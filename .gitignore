@@ -31,3 +31,6 @@ app/google-services.json
 functions/node_modules/
 .agents/
 firebase-debug.log
+
+# Agent working artifacts (screenshots, scratch)
+.agent-artifacts/
