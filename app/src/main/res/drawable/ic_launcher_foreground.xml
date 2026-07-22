@@ -1,27 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Kinetic AI Coach brand mark: white pose-tracker skeleton, matching the in-app
-     red bones overlay but in monochrome white for the launcher icon. Geometry is
-     centered and scaled to sit within the ~66dp adaptive icon safe zone of the
-     108dp canvas. -->
+<!-- Kinetic AI Coach: dynamic jumping-jack pose figure with tracked joint nodes.
+     Inset via group scale 0.86 to sit inside the adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- skeleton lines (neck, shoulders, arms, spine, hips, legs) -->
-    <path
-        android:pathData="M54,38.02 L54,43.8 M45.84,43.8 L62.16,43.8 M45.84,43.8 L41.42,50.26 L39.38,56.72 M62.16,43.8 L66.58,50.26 L68.62,56.72 M54,43.8 L54,62.16 M48.9,62.16 L59.1,62.16 M48.9,62.16 L47.88,72.7 L46.86,82.9 M59.1,62.16 L60.12,72.7 L61.14,82.9"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.72"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000" />
-    <!-- head -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M47.54,31.56 a6.46,6.46 0 1,0 12.92,0 a6.46,6.46 0 1,0 -12.92,0 Z" />
-    <!-- joints -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M44.31,43.8 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M60.63,43.8 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M40.06,50.26 a1.36,1.36 0 1,0 2.72,0 a1.36,1.36 0 1,0 -2.72,0 Z M65.22,50.26 a1.36,1.36 0 1,0 2.72,0 a1.36,1.36 0 1,0 -2.72,0 Z M37.85,56.72 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M67.09,56.72 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M47.37,62.16 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M57.57,62.16 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M46.52,72.7 a1.36,1.36 0 1,0 2.72,0 a1.36,1.36 0 1,0 -2.72,0 Z M58.76,72.7 a1.36,1.36 0 1,0 2.72,0 a1.36,1.36 0 1,0 -2.72,0 Z M45.33,82.9 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z M59.61,82.9 a1.53,1.53 0 1,0 3.06,0 a1.53,1.53 0 1,0 -3.06,0 Z" />
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+  <group android:scaleX="0.86" android:scaleY="0.86" android:pivotX="54" android:pivotY="54">
+    <path android:pathData="M54.0,38.39 L54.0,63.28" android:strokeColor="#0B1220" android:strokeWidth="3.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M54.0,43.24 L41.34,31.64 L31.64,22.78" android:strokeColor="#0B1220" android:strokeWidth="3.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M54.0,43.24 L66.66,31.64 L76.36,22.78" android:strokeColor="#0B1220" android:strokeWidth="3.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M54.0,63.28 L43.45,75.09 L37.12,86.06" android:strokeColor="#0B1220" android:strokeWidth="3.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M54.0,63.28 L64.55,75.09 L70.88,86.06" android:strokeColor="#0B1220" android:strokeWidth="3.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:fillColor="#0B1220" android:pathData="M47.46,29.53 a6.54,6.54 0 1,0 13.08,0 a6.54,6.54 0 1,0 -13.08,0 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M51.89,43.24 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z M39.44,31.64 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z M64.76,31.64 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z M29.53,22.78 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z M74.25,22.78 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z M51.89,63.28 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z M41.55,75.09 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z M62.65,75.09 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z M35.01,86.06 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z M68.77,86.06 a2.11,2.11 0 1,0 4.22,0 a2.11,2.11 0 1,0 -4.22,0 Z"/>
+  </group>
 </vector>
