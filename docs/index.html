@@ -86,6 +86,13 @@
     .hero h1 { font-size: 2.4rem; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
     .hero p.lead { font-size: 1.2rem; color: var(--muted); max-width: 620px; margin: 0 auto 28px; }
     .hero .subtext { color: var(--muted); font-size: .9rem; margin-top: 14px; }
+    .hero .demo {
+      margin: 34px auto 0; width: 250px; max-width: 74vw;
+      border-radius: 30px; border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      display: block; background: #000; aspect-ratio: 540 / 1126;
+    }
+    .hero .demo-cap { color: var(--muted); font-size: .82rem; margin-top: 12px; }
     .badge {
       display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .04em;
       text-transform: uppercase; color: var(--accent);
@@ -197,6 +204,10 @@
         <p class="lead">AI personal trainer: rep counter, form correction, live pose feedback.</p>
         <a class="cta" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm" target="_blank" rel="noopener noreferrer">Get Early Access on Google Play</a>
         <p class="subtext">Now in early access — Android 7.0+</p>
+        <video class="demo" src="media/kinetic-demo.mp4" poster="media/kinetic-demo-poster.jpg"
+               autoplay muted loop playsinline preload="metadata"
+               aria-label="Kinetic AI Fitness Coach demo: live pose skeleton, rep counting, and form scoring"></video>
+        <p class="demo-cap">Live AI rep counting &amp; form feedback — real in-app capture</p>
       </div>
     </section>
 
