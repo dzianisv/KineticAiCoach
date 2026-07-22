@@ -1,0 +1,33 @@
+name: proxy-e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  proxy-e2e:
+    name: proxy-e2e
+    runs-on: ubuntu-latest
+    env:
+      # Prefer the repo variable; fall back to the known deployed URL if unset.
+      PROXY_URL: ${{ vars.PROXY_URL || 'https://us-central1-kinetic-ai-coach-50627.cloudfunctions.net/geminiProxy' }}
+      FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Run E2E proxy tests
+        working-directory: functions
+        run: npm test
