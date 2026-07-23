@@ -16,6 +16,7 @@ data class UserProfile(
     val weeklyGoalDays: Int = 3,
     val experiencePoints: Int = 0,
     val streakDays: Int = 0,
+    val lastWorkoutDate: Long? = null, // System.currentTimeMillis() of last completed session
     val workoutProgram: String = "" // Custom AI fitness program description
 )
 

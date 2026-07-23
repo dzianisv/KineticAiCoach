@@ -7,7 +7,7 @@ package: com.aistudio.aicoach.vtzrkm
 #
 # Flow: guest login -> conversational coach onboarding -> program built ->
 # Start today's class -> AI-DRIVEN workout (ML Kit red pose skeleton drawn on each
-# frame, montages streamed to gemini-3.5-flash which COUNTS reps/sets, TTS speaks
+# frame, montages streamed to gemini-3.6-flash which COUNTS reps/sets, TTS speaks
 # cues, class AUTO-ADVANCES exercises) -> "Class Complete!" results table.
 goal: >
   You are testing the "AI Coach" fitness Android app end to end. Look at each

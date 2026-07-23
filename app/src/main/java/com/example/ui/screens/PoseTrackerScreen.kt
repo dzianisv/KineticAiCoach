@@ -535,50 +535,62 @@ fun PoseTrackerScreen(
             colors = CardDefaults.cardColors(containerColor = PremiumGrayDark.copy(alpha = 0.85f)),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("WORKOUT TIME", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60),
-                        fontSize = 18.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
-                    )
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("WORKOUT TIME", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60),
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("REPS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "$repCount",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("SETS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "$setCount",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("FORM SCORE", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = String.format("%.0f%%", averageFormScore),
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("REPS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
+                if (demoMode) {
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "$repCount",
-                        fontSize = 20.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("SETS", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "$setCount",
-                        fontSize = 20.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("FORM SCORE", fontSize = 10.sp, color = PremiumGrayMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = String.format("%.0f%%", averageFormScore),
-                        fontSize = 18.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
+                        text = "⚠ Form score, reps & sets are SIMULATED — not based on real movement analysis.",
+                        fontSize = 10.sp,
+                        color = Color(0xFFF59E0B),
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -644,9 +656,9 @@ fun PoseTrackerScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (demoMode) "Demo Feed • Live AI" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
+                        text = if (demoMode) "⚠ SIMULATION • Form score estimated" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
                         fontSize = 12.sp,
-                        color = PremiumGrayMedium
+                        color = if (demoMode) Color(0xFFF59E0B) else PremiumGrayMedium
                     )
                 }
 

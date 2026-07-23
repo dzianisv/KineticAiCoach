@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
  * Best-effort cloud sync of user profile and workout sessions to Firestore.
  * All operations swallow errors so local Room writes are never blocked by network issues.
  */
-class FirestoreSync {
+open class FirestoreSync : CloudSync {
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
@@ -28,7 +28,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pushProfile(uid: String, profile: UserProfile) {
+    override suspend fun pushProfile(uid: String, profile: UserProfile) {
         if (uid.isBlank()) return
         try {
             withContext(Dispatchers.IO) {
@@ -43,7 +43,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pushSession(uid: String, session: WorkoutSession) {
+    override suspend fun pushSession(uid: String, session: WorkoutSession) {
         if (uid.isBlank()) return
         try {
             withContext(Dispatchers.IO) {
@@ -59,7 +59,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pushProgram(uid: String, exercises: List<ProgramExercise>) {
+    override suspend fun pushProgram(uid: String, exercises: List<ProgramExercise>) {
         if (uid.isBlank()) return
         try {
             withContext(Dispatchers.IO) {
@@ -76,7 +76,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pushClass(uid: String, c: WorkoutClass) {
+    override suspend fun pushClass(uid: String, c: WorkoutClass) {
         if (uid.isBlank()) return
         try {
             withContext(Dispatchers.IO) {
@@ -93,7 +93,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pushMessage(uid: String, message: ChatMessageEntity) {
+    override suspend fun pushMessage(uid: String, message: ChatMessageEntity) {
         if (uid.isBlank()) return
         try {
             withContext(Dispatchers.IO) {
@@ -110,7 +110,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pullMessages(uid: String): List<ChatMessageEntity> {
+    override suspend fun pullMessages(uid: String): List<ChatMessageEntity> {
         if (uid.isBlank()) return emptyList()
         return try {
             withContext(Dispatchers.IO) {
@@ -134,7 +134,7 @@ class FirestoreSync {
         }
     }
 
-    suspend fun pullProfile(uid: String): UserProfile? {
+    override suspend fun pullProfile(uid: String): UserProfile? {
         if (uid.isBlank()) return null
         return try {
             withContext(Dispatchers.IO) {
@@ -155,6 +155,7 @@ class FirestoreSync {
                         weeklyGoalDays = (snapshot.get("weeklyGoalDays") as? Number)?.toInt() ?: 3,
                         experiencePoints = (snapshot.get("experiencePoints") as? Number)?.toInt() ?: 0,
                         streakDays = (snapshot.get("streakDays") as? Number)?.toInt() ?: 0,
+                        lastWorkoutDate = (snapshot.get("lastWorkoutDate") as? Number)?.toLong(),
                         workoutProgram = snapshot.getString("workoutProgram") ?: ""
                     )
                 }
@@ -174,6 +175,7 @@ class FirestoreSync {
         "weeklyGoalDays" to profile.weeklyGoalDays,
         "experiencePoints" to profile.experiencePoints,
         "streakDays" to profile.streakDays,
+        "lastWorkoutDate" to profile.lastWorkoutDate,
         "workoutProgram" to profile.workoutProgram
     )
 
