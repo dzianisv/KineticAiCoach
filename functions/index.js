@@ -2,9 +2,23 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { GoogleGenAI } = require("@google/genai");
 const { OAuth2Client } = require("google-auth-library");
+const { google } = require("googleapis");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
+
+// --- Google Play subscription verification constants -----------------------
+// OAuth scope required to call the Android Publisher (Google Play Developer) API.
+const ANDROIDPUBLISHER_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+// The app's Play package. Used as a safe default if the client omits it.
+const DEFAULT_PACKAGE_NAME = "com.aistudio.aicoach.vtzrkm";
+// The single subscription product id (see BillingConfig.PRODUCT_ID_PRO).
+const DEFAULT_PRODUCT_ID = "kinetic_pro";
+// subscriptionsv2 states that count as an entitled (paying/valid) subscriber.
+const ENTITLED_V2_STATES = new Set([
+  "SUBSCRIPTION_STATE_ACTIVE",
+  "SUBSCRIPTION_STATE_IN_GRACE_PERIOD"
+]);
 
 // Instantiates a Google Auth Client to verify standard Google Sign-In ID Tokens
 const oauth2Client = new OAuth2Client();
@@ -164,30 +178,19 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
 });
 
 /**
- * Cloud Function: verifySubscription
+ * Extracts and validates the authenticated Firebase uid from a callable context.
  *
- * STUB / scaffold only: this callable currently does not perform any server-side
- * purchase verification and always returns `verified: false`.
+ * Firebase callable functions verify the caller's Firebase ID token before the
+ * handler runs and expose the result on `context.auth`. This mirrors the
+ * ID-token verification the geminiProxy performs (admin.auth().verifyIdToken):
+ * an absent/blank uid means the caller is unauthenticated, and we reject with a
+ * callable "unauthenticated" error (surfaced to HTTP callers as 401).
  *
- * TODO(server-verification): replace this placeholder with a real Google Play
- * Developer API verification flow using purchases.subscriptionsv2.get:
- * https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2/get
- * The implementation must use a Google Cloud service account scoped for
- * `androidpublisher`, with "Enable API access" configured and linked in Play
- * Console for this app. It should fetch subscription state for the provided
- * purchaseToken/productId and treat SUBSCRIPTION_STATE_ACTIVE (and
- * SUBSCRIPTION_STATE_IN_GRACE_PERIOD) as entitled before returning `verified: true`.
- *
- * The Android client (BillingManager.kt) already invokes this callable
- * non-blockingly after local purchase acknowledgment for observability/future
- * hardening only. Entitlement is currently granted client-side from Play Billing
- * local purchase state + acknowledgment flag. Once server verification becomes the
- * source of truth, update/remove this comment and gate entitlement on this result.
- *
- * Deployment note: do NOT deploy this function as part of this change
- * (firebase deploy is explicitly out of scope).
+ * @param {*} context Firebase callable context.
+ * @returns {string} A non-empty, trimmed uid.
+ * @throws {functions.https.HttpsError} code "unauthenticated" when no valid uid.
  */
-exports.verifySubscription = functions.https.onCall(async (data, context) => {
+function requireUid(context) {
   const uid = context && context.auth && typeof context.auth.uid === "string"
     ? context.auth.uid.trim()
     : "";
@@ -197,8 +200,99 @@ exports.verifySubscription = functions.https.onCall(async (data, context) => {
       "Authentication is required to verify subscriptions."
     );
   }
+  return uid;
+}
 
-  const purchaseToken = data && typeof data.purchaseToken === "string"
+/**
+ * Derives entitlement from an androidpublisher purchases.subscriptionsv2 resource.
+ * ACTIVE and IN_GRACE_PERIOD both count as entitled. expiryTimeMillis is the
+ * latest lineItem.expiryTime across the subscription (RFC3339 -> epoch ms).
+ *
+ * @param {object} sub subscriptionsv2 response body (SubscriptionPurchaseV2).
+ * @returns {{active: boolean, state: string, expiryTimeMillis: (number|null)}}
+ */
+function deriveEntitlementV2(sub) {
+  const state = (sub && typeof sub.subscriptionState === "string")
+    ? sub.subscriptionState
+    : "SUBSCRIPTION_STATE_UNSPECIFIED";
+  const active = ENTITLED_V2_STATES.has(state);
+
+  let expiryTimeMillis = null;
+  const lineItems = (sub && Array.isArray(sub.lineItems)) ? sub.lineItems : [];
+  for (const li of lineItems) {
+    if (li && typeof li.expiryTime === "string") {
+      const ms = Date.parse(li.expiryTime);
+      if (!Number.isNaN(ms)) {
+        expiryTimeMillis = expiryTimeMillis == null ? ms : Math.max(expiryTimeMillis, ms);
+      }
+    }
+  }
+  return { active, state, expiryTimeMillis };
+}
+
+/**
+ * Derives entitlement from a legacy purchases.subscriptions (v1) resource, used
+ * only as a fallback when subscriptionsv2.get is unavailable. A subscription is
+ * entitled when it has not expired and is not stuck in a pending payment state
+ * (paymentState === 0 means "payment pending").
+ *
+ * @param {object} sub subscriptions.get (v1) response body.
+ * @param {number} nowMillis current epoch ms (injectable for tests).
+ * @returns {{active: boolean, state: string, expiryTimeMillis: (number|null)}}
+ */
+function deriveEntitlementV1(sub, nowMillis = Date.now()) {
+  const expiryTimeMillis = (sub && sub.expiryTimeMillis != null && sub.expiryTimeMillis !== "")
+    ? Number(sub.expiryTimeMillis)
+    : null;
+  const paymentPending = sub && sub.paymentState === 0; // 0 = payment pending
+  const notExpired = expiryTimeMillis != null && !Number.isNaN(expiryTimeMillis) && expiryTimeMillis > nowMillis;
+  const active = Boolean(notExpired && !paymentPending);
+  return {
+    active,
+    state: active ? "SUBSCRIPTION_STATE_ACTIVE" : "SUBSCRIPTION_STATE_EXPIRED_OR_PENDING",
+    expiryTimeMillis: (expiryTimeMillis != null && Number.isNaN(expiryTimeMillis)) ? null : expiryTimeMillis
+  };
+}
+
+/**
+ * Cloud Function: verifySubscription (callable)
+ *
+ * Server-authoritative Google Play subscription verification. Called by the
+ * Android client (BillingManager.kt) after a local purchase acknowledgment. This
+ * makes entitlement reconcilable server-side rather than trusting the
+ * (client-spoofable) local Play Billing state alone.
+ *
+ * Auth: requires a valid Firebase ID token (enforced by the callable protocol +
+ * requireUid). Unauthenticated callers are rejected (HTTP 401 for raw callers).
+ *
+ * Input data: { packageName?, productId?, purchaseToken }
+ *   - packageName defaults to the app package if omitted.
+ *   - productId   defaults to kinetic_pro if omitted.
+ *   - purchaseToken is required.
+ *
+ * Behaviour:
+ *   - Calls androidpublisher.purchases.subscriptionsv2.get (current API) using
+ *     Application Default Credentials (the deployed function's runtime service
+ *     account, which must be granted androidpublisher access + Play "API access").
+ *     Scope: https://www.googleapis.com/auth/androidpublisher.
+ *   - Falls back to the legacy purchases.subscriptions.get if v2 fails with a
+ *     404/NOT_FOUND (e.g. the API isn't v2-enabled for this app yet).
+ *   - Persists the result to Firestore users/{uid}.proEntitlement so entitlement
+ *     becomes server-authoritative and reconcilable.
+ *   - On API/credential errors it returns a callable error (never throws
+ *     uncaught / crashes the function).
+ *
+ * Returns: { verified, state, expiryTimeMillis, productId }
+ *
+ * Deployment note: do NOT deploy this function as part of this change; deploy is
+ * explicitly out of scope. Deploy later with (per repo convention):
+ *   gcloud functions deploy verifySubscription --source functions ...
+ */
+exports.verifySubscription = functions.https.onCall(async (data, context) => {
+  // Auth gate (outside try so unauthenticated maps cleanly to 401, not "internal").
+  const uid = requireUid(context);
+
+  const purchaseToken = (data && typeof data.purchaseToken === "string")
     ? data.purchaseToken.trim()
     : "";
   if (!purchaseToken) {
@@ -208,11 +302,82 @@ exports.verifySubscription = functions.https.onCall(async (data, context) => {
     );
   }
 
-  console.log("verifySubscription called", { uid, purchaseToken });
+  const productId = (data && typeof data.productId === "string" && data.productId.trim())
+    ? data.productId.trim()
+    : DEFAULT_PRODUCT_ID;
+  const packageName = (data && typeof data.packageName === "string" && data.packageName.trim())
+    ? data.packageName.trim()
+    : DEFAULT_PACKAGE_NAME;
 
-  return {
-    verified: false,
-    subscriptionState: "UNVERIFIED",
-    message: "Server-side verification not yet implemented; entitlement is currently granted client-side via Play Billing purchase acknowledgment only."
-  };
+  try {
+    // Application Default Credentials: on Cloud Functions this is the function's
+    // runtime service account, which must carry androidpublisher access.
+    const authClient = await google.auth.getClient({ scopes: [ANDROIDPUBLISHER_SCOPE] });
+    const androidpublisher = google.androidpublisher({ version: "v3", auth: authClient });
+
+    let entitlement;
+    let apiVersion = "subscriptionsv2";
+    try {
+      const v2 = await androidpublisher.purchases.subscriptionsv2.get({
+        packageName,
+        token: purchaseToken
+      });
+      entitlement = deriveEntitlementV2(v2.data || {});
+    } catch (v2err) {
+      const status = v2err && (v2err.code || (v2err.response && v2err.response.status));
+      // Only fall back for "not found / not enabled"-style failures; re-throw the
+      // rest so genuine auth/permission errors surface as a clear error below.
+      if (status === 404 || status === 400) {
+        apiVersion = "subscriptions";
+        const v1 = await androidpublisher.purchases.subscriptions.get({
+          packageName,
+          subscriptionId: productId,
+          token: purchaseToken
+        });
+        entitlement = deriveEntitlementV1(v1.data || {});
+      } else {
+        throw v2err;
+      }
+    }
+
+    // Persist server-authoritative entitlement. Merge so we never clobber other
+    // user fields; this doc is the reconcilable source of truth going forward.
+    try {
+      await admin.firestore().doc(`users/${uid}`).set({
+        proEntitlement: {
+          active: entitlement.active,
+          productId,
+          expiryTimeMillis: entitlement.expiryTimeMillis,
+          purchaseToken,
+          verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+        }
+      }, { merge: true });
+    } catch (fsErr) {
+      // Persistence is best-effort observability; do not fail the verification
+      // result just because the write failed.
+      console.error("verifySubscription: Firestore write failed", fsErr && fsErr.message);
+    }
+
+    console.log("verifySubscription verified", {
+      uid, productId, apiVersion, verified: entitlement.active, state: entitlement.state
+    });
+
+    return {
+      verified: entitlement.active,
+      state: entitlement.state,
+      expiryTimeMillis: entitlement.expiryTimeMillis,
+      productId
+    };
+  } catch (err) {
+    // Defensive: never throw uncaught (would crash/500 opaquely). Return a
+    // callable error with a safe, non-leaking message.
+    console.error("verifySubscription failed", err && (err.message || err));
+    throw new functions.https.HttpsError(
+      "internal",
+      "Subscription verification could not be completed. Entitlement was not changed."
+    );
+  }
 });
+
+// Exported for unit tests (pure logic; no network / no side effects).
+exports._internal = { requireUid, deriveEntitlementV2, deriveEntitlementV1 };
