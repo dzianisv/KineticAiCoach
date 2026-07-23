@@ -60,6 +60,9 @@ class BillingManager(
     /** Firebase Callable client for best-effort server-side purchase verification. */
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance()
 
+    /** App package name, captured at construction for the server verify payload. */
+    private val appPackageName: String = context.applicationContext.packageName
+
     private val billingClient: BillingClient = BillingClient.newBuilder(context.applicationContext)
         .setListener(this)
         .enablePendingPurchases(
@@ -273,23 +276,27 @@ class BillingManager(
     /**
      * Fire-and-forget, best-effort server-side verification of a purchase via the
      * `verifySubscription` callable Firebase Function.
+     *
+     * The server (functions/index.js) now calls the real Google Play Developer API
+     * and writes a server-authoritative entitlement to Firestore. This call stays
+     * NON-BLOCKING and best-effort: a verify failure (network, cold start, not-yet
+     * -deployed) must NEVER revoke a legit local purchase. The server result is
+     * logged for observability/reconciliation only.
      */
     private fun verifyPurchaseServerSide(purchase: Purchase) {
-        // TODO(server-verification): This call is best-effort/non-blocking and does NOT gate
-        // entitlement today — entitlement is granted from the local acknowledge+state check above.
-        // Once the verifySubscription Cloud Function calls the real Play Developer API
-        // (purchases.subscriptionsv2.get), this should become the source of truth and this call
-        // site should be revisited to react to a negative verification result (e.g. revoke isPro).
         externalScope.launch {
             try {
                 val data = hashMapOf(
-                    "purchaseToken" to purchase.purchaseToken,
-                    "productId" to (purchase.products.firstOrNull() ?: BillingConfig.PRODUCT_ID_PRO)
+                    "packageName" to appPackageName,
+                    "productId" to (purchase.products.firstOrNull() ?: BillingConfig.PRODUCT_ID_PRO),
+                    "purchaseToken" to purchase.purchaseToken
                 )
                 val result = withContext(Dispatchers.IO) {
                     Tasks.await(functions.getHttpsCallable("verifySubscription").call(data))
                 }
-                Log.d(TAG, "verifySubscription (non-blocking) result: ${result.data}")
+                // Server returns { verified, state, expiryTimeMillis, productId }.
+                val verified = (result.data as? Map<*, *>)?.get("verified")
+                Log.d(TAG, "verifySubscription (non-blocking) verified=$verified data=${result.data}")
             } catch (e: Exception) {
                 Log.w(TAG, "verifySubscription call failed (non-blocking, entitlement unaffected)", e)
             }
