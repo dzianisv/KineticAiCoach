@@ -111,7 +111,7 @@ exports.geminiProxy = functions.runWith({ secrets: ["GEMINI_API_KEY"] }).https.o
     const ai = useVertexBackend ? new GoogleGenAI({
       vertexai: true,
       project: process.env.GCLOUD_PROJECT || "kinetic-ai-coach-50627",
-      // gemini-3.5-flash is only served from the `global` Vertex location, so we
+      // gemini-3.6-flash is only served from the `global` Vertex location, so we
       // default there. Overridable via VERTEX_LOCATION.
       location: process.env.VERTEX_LOCATION || "global"
     }) : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });

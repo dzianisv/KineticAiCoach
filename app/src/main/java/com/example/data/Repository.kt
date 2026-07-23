@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.firstOrNull
 
 class FitRepository(
     private val db: AppDatabase,
-    private val firestoreSync: FirestoreSync = FirestoreSync()
+    private val firestoreSync: CloudSync = FirestoreSync(),
+    private val clockMillis: () -> Long = { System.currentTimeMillis() }
 ) {
     val userProfile: Flow<UserProfile?> = db.userProfileDao().getProfileFlow()
     val workoutSessions: Flow<List<WorkoutSession>> = db.workoutSessionDao().getAllSessions()
@@ -66,6 +67,7 @@ class FitRepository(
                 weeklyGoalDays = remote.weeklyGoalDays,
                 experiencePoints = remote.experiencePoints,
                 streakDays = remote.streakDays,
+                lastWorkoutDate = remote.lastWorkoutDate,
                 workoutProgram = remote.workoutProgram
             )
         } else {
@@ -111,20 +113,30 @@ class FitRepository(
         val profile = db.userProfileDao().getProfileDirect() ?: UserProfile()
         val newXp = profile.experiencePoints + points
         // Dynamic streak handling
-        val newStreak = if (profile.streakDays == 0) 1 else profile.streakDays + 1
+        val todayEpochDay = clockMillis() / 86_400_000L
+        val lastDay = profile.lastWorkoutDate?.let { it / 86_400_000L }
+        val newStreak = when {
+            lastDay == null -> 1
+            todayEpochDay == lastDay -> profile.streakDays
+            todayEpochDay == lastDay + 1L -> profile.streakDays + 1
+            else -> 1
+        }
         val updatedProfile = profile.copy(
             experiencePoints = newXp,
-            streakDays = newStreak
+            streakDays = newStreak,
+            lastWorkoutDate = clockMillis()
         )
         db.userProfileDao().insertOrUpdate(updatedProfile)
         // 3. Update current user on leaderboard
         db.leaderboardDao().updateCurrentUserPoints(newXp)
 
         // 4. Check & Unlock Badges
-        val now = System.currentTimeMillis()
+        val now = clockMillis()
         
-        // Badge 1: First Step (Unconditionally unlocked on first session)
-        db.badgeDao().unlockBadge("first_step", now)
+        // Badge 1: First Step (only on first session)
+        if (profile.streakDays == 0) {
+            db.badgeDao().unlockBadge("first_step", now)
+        }
 
         // Badge 2: Form Master (Unlocked if form score >= 90%)
         if (formScore >= 90.0) {
@@ -133,7 +145,7 @@ class FitRepository(
 
         // Badge 3: Iron Will (Unlocked if session count >= 3)
         val sessions = db.workoutSessionDao().getAllSessions().firstOrNull() ?: emptyList()
-        if (sessions.size >= 2) { // counting current session as well
+        if (sessions.size >= 3) { // counting current session as well
             db.badgeDao().unlockBadge("iron_will", now)
         }
 

@@ -74,6 +74,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -599,6 +600,18 @@ fun TodaysClassScreen(
                         )
                     }
                 }
+
+                if (demoMode) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "⚠ Form score, reps & sets are SIMULATED — not based on real movement analysis.",
+                        fontSize = 10.sp,
+                        color = Color(0xFFF59E0B),
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 
@@ -661,9 +674,9 @@ fun TodaysClassScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (demoMode) "Demo Feed • Live AI" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
+                        text = if (demoMode) "⚠ SIMULATION • Form score estimated" else if (hasCameraPermission) "Camera Feed Active" else "Camera Blocked",
                         fontSize = 12.sp,
-                        color = PremiumGrayMedium
+                        color = if (demoMode) Color(0xFFF59E0B) else PremiumGrayMedium
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
