@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinetic AI Fitness Coach — AI Personal Trainer That Counts Reps &amp; Fixes Form</title>
+<meta name="description" content="Kinetic is the AI personal trainer that uses your phone camera for live pose detection, automatic rep counting, and real-time form correction. Free trial.">
+<link rel="canonical" href="https://dzianisv.github.io/KineticAiCoach/">
+<meta property="og:title" content="Kinetic AI Fitness Coach — Your AI Personal Trainer">
+<meta property="og:description" content="AI personal trainer with live pose detection, automatic rep counting, and real-time form correction — using nothing but your phone camera.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dzianisv.github.io/KineticAiCoach/">
+<meta property="og:image" content="https://play.google.com/intl/en_us/badges/static/images/badges/en_us_badge_web_generic.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Kinetic AI Fitness Coach",
+  "operatingSystem": "Android",
+  "applicationCategory": "HealthApplication",
+  "url": "https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm",
+  "offers": {
+    "@type": "Offer",
+    "category": "subscription"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does Kinetic count reps automatically?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Kinetic runs on-device pose detection to track your joints, then sends the annotated set over an encrypted connection to Google Gemini through the app's own secure backend, which counts your sets and reps for you so you never lose count."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Kinetic a free AI personal trainer?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Kinetic includes a 3-day free trial. After the trial, continued access to Kinetic Pro coaching is a recurring subscription billed through Google Play. You can manage or cancel anytime in your Google Play account settings."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does AI form correction work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "On-device machine learning overlays a live red skeleton on your camera feed. That annotated footage is analyzed by Google Gemini, which critiques your technique and returns specific, real-time form feedback that Kinetic can read aloud mid-set."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work without a wearable?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Kinetic needs nothing but your phone's camera — no smartwatch, no chest strap, no gym check-in. Point your camera at yourself and train."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is my camera data private?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Pose detection runs on-device. Camera frames leave your device only to analyze a set for rep counting and coaching, over an encrypted HTTPS connection to our backend, which forwards them to Google's Gemini model for that single purpose. Nothing is shared with advertisers, and you can use the app as an anonymous guest."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root{
+  --accent:#ff3b2f;
+  --accent-2:#ff7a18;
+  --ink:#14161a;
+  --muted:#5b616e;
+  --bg:#ffffff;
+  --panel:#f6f7f9;
+  --line:#e7e9ee;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3{line-height:1.2;margin:0 0 .4em}
+h1{font-size:clamp(2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0 0 1em}
+.hero{
+  background:linear-gradient(135deg,#1a1c22 0%,#26140f 100%);
+  color:#fff;
+  padding:72px 0 64px;
+  text-align:center;
+}
+.hero h1{color:#fff}
+.hero .kw{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.subhead{font-size:clamp(1.05rem,2.6vw,1.35rem);color:#d6d8de;max-width:640px;margin:0 auto 2rem}
+.badge-link{display:inline-block}
+.badge-link img{height:64px;width:auto}
+.section{padding:64px 0;border-top:1px solid var(--line)}
+.section-lead{color:var(--muted);max-width:680px;margin-bottom:2.5rem;font-size:1.1rem}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
+.card .ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--accent-2));margin-bottom:14px}
+.card p{margin:0;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;counter-reset:step}
+.step{position:relative;padding-top:8px}
+.step .n{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;margin-bottom:12px}
+.step p{color:var(--muted);margin:0}
+.faq details{border:1px solid var(--line);border-radius:12px;padding:4px 20px;margin-bottom:12px;background:var(--panel)}
+.faq summary{cursor:pointer;font-weight:700;padding:16px 0;list-style:none;font-size:1.08rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";float:right;color:var(--accent);font-weight:800}
+.faq details[open] summary::after{content:"−"}
+.faq details p{color:var(--muted);padding-bottom:16px;margin:0}
+.cta{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;text-align:center;border-radius:20px;padding:48px 24px;margin:64px 0}
+.cta h2{color:#fff}
+.cta .badge-link img{height:60px}
+.disclaimer{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 20px;color:var(--muted);font-size:.95rem}
+footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted);font-size:.95rem;text-align:center}
+footer a{color:var(--ink);font-weight:600}
+footer .sep{margin:0 10px;color:var(--line)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Kinetic AI Fitness Coach<br><span class="kw">Your AI Personal Trainer</span></h1>
+    <p class="subhead">Kinetic watches your form, counts your reps, and talks you through every set — using nothing but your phone's camera. No wearables. No gym check-in.</p>
+    <a class="badge-link" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm">
+      <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_us_badge_web_generic.png" alt="Get Kinetic AI Fitness Coach on Google Play">
+    </a>
+  </div>
+</header>
+
+<main>
+
+<section class="section">
+  <div class="wrap">
+    <h2>Why Kinetic</h2>
+    <p class="section-lead">A live skeleton overlay plus a multimodal AI that actually watches your set — not a heuristic counter or an ungrounded chatbot.</p>
+    <div class="features">
+      <div class="card">
+        <div class="ico">🦴</div>
+        <h3>Live pose detection</h3>
+        <p>On-device machine learning tracks your joints and overlays a red skeleton on your camera feed, so you see exactly how your body moves.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🔢</div>
+        <h3>AI form correction &amp; rep counter</h3>
+        <p>Your annotated set is analyzed by Google Gemini through the app's own secure backend, which counts sets and reps and critiques your technique.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🔊</div>
+        <h3>Coaching out loud</h3>
+        <p>Text-to-speech reads your form tips and rep counts aloud mid-set, so you never break form to check your screen.</p>
+      </div>
+      <div class="card">
+        <div class="ico">📋</div>
+        <h3>AI-generated workout plans</h3>
+        <p>Tell the coach your goals and get a personalized program made for you — an AI personal trainer built around you, not a generic template.</p>
+      </div>
+      <div class="card">
+        <div class="ico">💬</div>
+        <h3>Conversational AI coach</h3>
+        <p>Ask anything and send photos, video, or files for feedback, not just text.</p>
+      </div>
+      <div class="card">
+        <div class="ico">📈</div>
+        <h3>History &amp; analytics</h3>
+        <p>Every session is logged so you can watch your reps, sets, and form improve over time.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🔐</div>
+        <h3>Sign-in options</h3>
+        <p>Google Sign-In or anonymous guest — your choice, synced securely when you're signed in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="section-lead">Turn your camera into your coach in three steps.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <h3>Point &amp; move</h3>
+        <p>Prop up your phone and start your set. Kinetic runs pose detection directly on your device and draws a live skeleton overlay so you always see what the app sees.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h3>AI watches your set</h3>
+        <p>The annotated video is sent over an encrypted connection to the app's own Cloud Function proxy, which forwards it to Google Gemini for one purpose: counting your reps and generating specific form feedback.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h3>Coach, count, improve</h3>
+        <p>Kinetic reads your reps and form tips aloud in real time, logs the session, and helps you build the next workout — no advertiser ever sees your footage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section faq">
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+    <p class="section-lead">Everything you need to know about your AI personal trainer.</p>
+
+    <details open>
+      <summary>Does Kinetic count reps automatically?</summary>
+      <p>Yes. Kinetic runs on-device pose detection to track your joints, then sends the annotated set over an encrypted connection to Google Gemini through the app's own secure backend, which counts your sets and reps for you so you never lose count.</p>
+    </details>
+
+    <details>
+      <summary>Is Kinetic a free AI personal trainer?</summary>
+      <p>Kinetic includes a 3-day free trial. After the trial, continued access to Kinetic Pro coaching is a recurring subscription billed through Google Play. You can manage or cancel anytime in your Google Play account settings.</p>
+    </details>
+
+    <details>
+      <summary>How does AI form correction work?</summary>
+      <p>On-device machine learning overlays a live red skeleton on your camera feed. That annotated footage is analyzed by Google Gemini, which critiques your technique and returns specific, real-time form feedback that Kinetic can read aloud mid-set.</p>
+    </details>
+
+    <details>
+      <summary>Does it work without a wearable?</summary>
+      <p>Yes. Kinetic needs nothing but your phone's camera — no smartwatch, no chest strap, no gym check-in. Point your camera at yourself and train.</p>
+    </details>
+
+    <details>
+      <summary>Is my camera data private?</summary>
+      <p>Pose detection runs on-device. Camera frames leave your device only to analyze a set for rep counting and coaching, over an encrypted HTTPS connection to our backend, which forwards them to Google's Gemini model for that single purpose. Nothing is shared with advertisers, and you can use the app as an anonymous guest.</p>
+    </details>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="cta">
+      <h2>Turn your camera into your coach today</h2>
+      <p>Start your 3-day free trial and train smarter with AI.</p>
+      <a class="badge-link" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm">
+        <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_us_badge_web_generic.png" alt="Get Kinetic AI Fitness Coach on Google Play">
+      </a>
+    </div>
+    <p class="disclaimer"><strong>Kinetic is a training tool, not a medical device.</strong> It does not diagnose injuries, replace a physical therapist or certified trainer, or give medical advice. If you have a pre-existing condition or injury, talk to a qualified professional before starting a new exercise program.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Kinetic AI Fitness Coach</p>
+    <p>
+      <a href="https://dzianisv.github.io/KineticAiCoach/privacy-policy.html">Privacy Policy</a>
+      <span class="sep">•</span>
+      <a href="mailto:support@agentlabs.cc">support@agentlabs.cc</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
