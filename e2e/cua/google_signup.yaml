@@ -1,0 +1,62 @@
+name: google_signup
+package: com.aistudio.aicoach.vtzrkm
+# AUTH journey 2 — GOOGLE SIGN-UP (first-time) via Android Credential Manager.
+# The published app's LoginScreen offers "Sign in with Google" (google_signin_button)
+# which invokes Android Credential Manager. On a Play Store AVD with a Google
+# account already added, tapping it shows the Google account picker / consent
+# bottom-sheet; choosing the account signs the user in for the FIRST time and the
+# app navigates into onboarding.
+#
+# NOTE: This requires a real Google account present on the device AND that
+# Credential Manager surfaces a non-interactive account picker. If no account is
+# present, or Credential Manager demands an interactive Google password + 2FA that
+# cannot be driven by vision-CUA, this journey is BLOCKED — do NOT fake a pass.
+goal: >
+  You are testing GOOGLE SIGN-UP on the "AI Coach" fitness Android app. Look at
+  each screenshot before acting and wait several seconds after taps that trigger
+  navigation or network.
+
+  1. Confirm the login screen is visible: a title "AI COACH", a "Sign in with
+     Google" button, and a "Continue as Guest" button.
+  2. Tap the "Sign in with Google" button (the PRIMARY button, NOT "Continue as
+     Guest").
+  3. A Google account picker / consent bottom-sheet titled something like "Sign
+     in to AI Coach", "Choose an account", or showing the account
+     vibeteaichnologies@gmail.com should appear. Tap the account
+     vibeteaichnologies@gmail.com (or the "Continue" / account row shown).
+  4. If a consent screen appears, tap "Continue" / "Allow" / "I agree".
+  5. Wait for sign-in to complete and the app to navigate PAST the login screen —
+     it should now show an onboarding chat/form (name, height, weight, goals, or
+     workout days) or a dashboard/home screen.
+  6. Report TEST_PASSED once a post-login screen (onboarding or dashboard) is
+     visible and the login screen with "Sign in with Google"/"Continue as Guest"
+     is gone.
+
+  BLOCKER handling: If tapping "Sign in with Google" shows NO account picker
+  (e.g. an error, a spinner that never resolves, a "no accounts" message, or a
+  Google password/2FA prompt that cannot be completed), STOP and report the exact
+  screen you are stuck on. Do NOT tap "Continue as Guest" as a fallback and do NOT
+  claim success.
+successCriteria:
+  - Tapped "Sign in with Google" (not the guest button)
+  - A Google account picker/consent sheet appeared and the account was chosen
+  - The login screen is no longer visible and an onboarding or dashboard screen
+    is shown after Google sign-in
+failureCriteria:
+  - No Google account picker appeared after tapping "Sign in with Google"
+  - Sign-in requires an interactive Google password/2FA prompt that cannot be
+    completed by the automation
+  - The app crashes or shows an error dialog/toast after tapping the Google button
+  - The flow falls back to or remains on the login screen
+verification:
+  prompt: >
+    Look at this screenshot of the AI Coach Android app, taken at the end of an
+    automated GOOGLE SIGN-IN test. Answer strictly YES or NO: Has the app moved
+    PAST the login screen via Google sign-in — i.e. the login screen (with "Sign
+    in with Google" and "Continue as Guest" buttons) is NO LONGER shown, and an
+    onboarding form (name/height/weight/goals/days) or a dashboard/home screen is
+    shown INSTEAD? A screenshot still showing "Sign in with Google" or "Continue
+    as Guest", a Google account picker/consent sheet, a password/2FA prompt, an
+    error, or a blank screen all count as NO. Answer YES or NO, then one sentence
+    of evidence.
+maxSteps: 16
