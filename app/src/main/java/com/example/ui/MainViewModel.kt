@@ -531,6 +531,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun startOnboardingChat() {
         if (_onboardingMessages.value.isNotEmpty()) return
+        Analytics.logOnboardingStarted()
         onboardingStep = OnboardingStep.HEIGHT
         pendingHeight = null
         pendingWeight = null
@@ -623,6 +624,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     } finally {
                         _isOnboardingBuilding.value = false
                         _isOnboardingComplete.value = true
+                        Analytics.logOnboardingCompleted()
                     }
                 }
             }
@@ -830,12 +832,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun dismissPaywall() {
+        Analytics.logPaywallDismissed(_paywallSource.value)
         _showPaywall.value = false
     }
 
     fun launchPurchase(activity: Activity, basePlanId: String) {
-        Analytics.logPurchaseStarted(basePlanId)
-        billingManager.launchPurchaseFlow(activity, basePlanId)
+        Analytics.logPurchaseStarted(basePlanId, _paywallSource.value)
+        billingManager.launchPurchaseFlow(activity, basePlanId, _paywallSource.value)
     }
 
     fun restorePurchases() {
@@ -898,6 +901,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         val optimisticId = (workoutClasses.value.maxOfOrNull { it.id } ?: 0) + 1
         viewModelScope.launch {
             val now = System.currentTimeMillis()
+            // Detect first-ever workout BEFORE persisting: a null lastWorkoutDate
+            // (equivalently streakDays == 0 in the repo) means this is the
+            // activation-defining first session. Read before save so the write
+            // below doesn't flip the gate.
+            val isFirstWorkout = userProfile.value?.lastWorkoutDate == null
             val workoutClass = WorkoutClass(
                 startedAt = startedAt,
                 completedAt = now,
@@ -919,6 +927,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     feedback = "Class exercise: ${r.name} — ${r.formScore}% form.",
                     classId = classId
                 )
+            }
+            if (isFirstWorkout) {
+                // Activation milestone: first-ever completed workout unlocks the
+                // "First Step" badge in the repository (streakDays == 0 gate).
+                Analytics.logFirstWorkoutCompleted()
+                Analytics.logFirstStepBadgeUnlocked()
             }
         }
         return optimisticId

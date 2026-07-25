@@ -23,14 +23,19 @@ object Analytics {
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
     }
 
+    fun logOnboardingStarted() = log(EVENT_ONBOARDING_STARTED)
+    fun logOnboardingCompleted() = log(EVENT_ONBOARDING_COMPLETED)
+    fun logFirstWorkoutCompleted() = log(EVENT_FIRST_WORKOUT_COMPLETED)
+    fun logFirstStepBadgeUnlocked() = log(EVENT_FIRST_STEP_BADGE_UNLOCKED)
     fun logSignInSuccess() = log(EVENT_SIGN_IN_SUCCESS)
     fun logProgramGenerated() = log(EVENT_PROGRAM_GENERATED)
     fun logClassStarted() = log(EVENT_CLASS_STARTED)
     fun logClassCompleted() = log(EVENT_CLASS_COMPLETED)
     fun logPaywallViewed(source: String) = log(EVENT_PAYWALL_VIEWED, bundleOf(PARAM_SOURCE to source))
-    fun logPurchaseStarted(basePlanId: String) = log(EVENT_PURCHASE_STARTED, bundleOf(PARAM_BASE_PLAN to basePlanId))
-    fun logPurchaseCompleted(basePlanId: String) = log(EVENT_PURCHASE_COMPLETED, bundleOf(PARAM_BASE_PLAN to basePlanId))
-    fun logPurchaseFailed(reason: String) = log(EVENT_PURCHASE_FAILED, bundleOf(PARAM_REASON to reason))
+    fun logPaywallDismissed(source: String) = log(EVENT_PAYWALL_DISMISSED, bundleOf(PARAM_SOURCE to source))
+    fun logPurchaseStarted(basePlanId: String, source: String = "") = log(EVENT_PURCHASE_STARTED, bundleOf(PARAM_BASE_PLAN to basePlanId, PARAM_SOURCE to source))
+    fun logPurchaseCompleted(basePlanId: String, source: String = "") = log(EVENT_PURCHASE_COMPLETED, bundleOf(PARAM_BASE_PLAN to basePlanId, PARAM_SOURCE to source))
+    fun logPurchaseFailed(reason: String, source: String = "") = log(EVENT_PURCHASE_FAILED, bundleOf(PARAM_REASON to reason, PARAM_SOURCE to source))
     fun logTrialStarted() = log(EVENT_TRIAL_STARTED)
     fun logTrialExpired() = log(EVENT_TRIAL_EXPIRED)
     fun logSubscriptionRestored() = log(EVENT_SUBSCRIPTION_RESTORED)
@@ -39,11 +44,16 @@ object Analytics {
         firebaseAnalytics?.logEvent(name, params)
     }
 
+    private const val EVENT_ONBOARDING_STARTED = "onboarding_started"
+    private const val EVENT_ONBOARDING_COMPLETED = "onboarding_completed"
+    private const val EVENT_FIRST_WORKOUT_COMPLETED = "first_workout_completed"
+    private const val EVENT_FIRST_STEP_BADGE_UNLOCKED = "first_step_badge_unlocked"
     private const val EVENT_SIGN_IN_SUCCESS = "sign_in_success"
     private const val EVENT_PROGRAM_GENERATED = "program_generated"
     private const val EVENT_CLASS_STARTED = "class_started"
     private const val EVENT_CLASS_COMPLETED = "class_completed"
     private const val EVENT_PAYWALL_VIEWED = "paywall_viewed"
+    private const val EVENT_PAYWALL_DISMISSED = "paywall_dismissed"
     private const val EVENT_PURCHASE_STARTED = "purchase_started"
     private const val EVENT_PURCHASE_COMPLETED = "purchase_completed"
     private const val EVENT_PURCHASE_FAILED = "purchase_failed"
