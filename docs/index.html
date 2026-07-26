@@ -162,6 +162,31 @@
     details[open] summary::after { content: "\2212"; }
     details p { color: var(--muted); margin: 0 0 18px; }
 
+    /* Pricing */
+    .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 720px; margin: 0 auto; }
+    .pricing-cards .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px 24px; text-align: center;
+      display: flex; flex-direction: column;
+    }
+    .pricing-cards .card.pro { border-color: var(--accent); position: relative; }
+    .pricing-cards .card .popular {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: var(--accent-ink);
+      font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+      padding: 4px 14px; border-radius: 999px;
+    }
+    .pricing-cards .card h3 { margin: 0 0 4px; font-size: 1.2rem; }
+    .pricing-cards .card .price { font-size: 2.2rem; font-weight: 800; margin: 8px 0 16px; color: var(--text); }
+    .pricing-cards .card .price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .pricing-cards .card ul { list-style: none; padding: 0; margin: 0 0 20px; text-align: left; flex: 1; }
+    .pricing-cards .card ul li { padding: 6px 0; color: var(--muted); font-size: .97rem; }
+    .pricing-cards .card ul li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 10px; }
+    .pricing-cards .card .cta { width: 100%; text-align: center; box-sizing: border-box; }
+    @media (max-width: 640px) {
+      .pricing-cards { grid-template-columns: 1fr; }
+    }
+
     /* Final CTA */
     .final { text-align: center; }
 
@@ -293,6 +318,40 @@
             <img src="play-store/screenshots/05-about.png" width="1080" height="2072" alt="Your AI coach watches your form — live." loading="lazy" />
             <figcaption>Your AI coach watches your form — live.</figcaption>
           </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="wrap">
+        <h2>Start free, upgrade when you're ready</h2>
+        <p class="sub">No credit card required to start. Cancel anytime.</p>
+        <div class="pricing-cards">
+          <div class="card free">
+            <h3>Trial</h3>
+            <p class="price">Free <span>3-day trial</span></p>
+            <ul>
+              <li>AI rep counting &amp; form feedback</li>
+              <li>Live pose skeleton overlay</li>
+              <li>Audio coaching</li>
+              <li>Workout history (local)</li>
+            </ul>
+            <a class="cta" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm" target="_blank" rel="noopener noreferrer">Try Free</a>
+          </div>
+          <div class="card pro featured">
+            <div class="popular">Most popular</div>
+            <h3>Kinetic Pro</h3>
+            <p class="price">$7.25<span>/month</span></p>
+            <ul>
+              <li>Everything in Trial, plus:</li>
+              <li>Unlimited AI coaching sessions</li>
+              <li>Personalized workout programs</li>
+              <li>Coach chat with photo/video upload</li>
+              <li>Cloud sync across devices</li>
+              <li>Advanced analytics &amp; trends</li>
+            </ul>
+            <a class="cta" href="https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm" target="_blank" rel="noopener noreferrer">Start Pro Free</a>
+          </div>
         </div>
       </div>
     </section>
