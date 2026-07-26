@@ -9,7 +9,95 @@
   <meta property="og:title" content="Kinetic AI Fitness Coach" />
   <meta property="og:description" content="AI personal trainer: rep counter, form correction, live pose feedback." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="play-store/feature-graphic.png" />
+  <meta property="og:url" content="https://dzianisv.github.io/KineticAiCoach/" />
+  <meta property="og:image" content="https://dzianisv.github.io/KineticAiCoach/play-store/feature-graphic.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Kinetic AI Fitness Coach" />
+  <meta name="twitter:description" content="AI personal trainer: rep counter, form correction, live pose feedback." />
+  <meta name="twitter:image" content="https://dzianisv.github.io/KineticAiCoach/play-store/feature-graphic.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Kinetic AI Fitness Coach",
+    "operatingSystem": "Android 7.0+",
+    "applicationCategory": "HealthApplication",
+    "description": "AI personal trainer: rep counter, form correction, live pose feedback. Your phone camera becomes your coach.",
+    "url": "https://dzianisv.github.io/KineticAiCoach/",
+    "sameAs": "https://play.google.com/store/apps/details?id=com.aistudio.aicoach.vtzrkm",
+    "image": "https://dzianisv.github.io/KineticAiCoach/play-store/feature-graphic.png",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free to start with a 3-day trial; optional subscription"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "VIBE TECHNOLOGIES LLC"
+    },
+    "datePublished": "2026-07-20",
+    "applicationSuite": "Fitness"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is it free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It's free to start during early access with a 3-day free trial — no credit card required upfront. After the trial, continued access to Kinetic Pro coaching features is an optional auto-renewing subscription billed through Google Play. You can cancel anytime in your Google Play account settings; the price is shown on the Play listing and inside the app before you subscribe."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need equipment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Just your phone and enough space to move. It works for bodyweight and home workouts — no wearables, weights, or gym required."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does it work offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pose tracking and the live skeleton overlay run on-device. AI form feedback, rep counting via Gemini, and the AI chat coach need an internet connection."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my camera data private?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pose detection runs on-device. Camera frames are only sent off-device — over an encrypted connection through the app's backend to Google's Gemini model — when needed to analyze a set for rep counting and coaching feedback, for that single purpose. Guest mode requires no account at all. See our Privacy Policy for full detail."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What devices are supported?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Android 7.0 and up."
+        }
+      }
+    ]
+  }
+  </script>
+  <!-- Google Analytics 4 — swap G-MEASUREMENT_ID for your GA4 web stream ID
+       Get it: Firebase Console → Project Settings → General → Web Apps → Add web app
+       or Google Analytics → Admin → Data Streams → Web → Add stream. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-MEASUREMENT_ID', { anonymize_ip: true });
+  </script>
   <style>
     :root {
       --bg: #0e1116;
@@ -333,6 +421,20 @@
       </div>
     </section>
   </main>
+
+  <!-- Track Play Store CTA clicks for conversion measurement -->
+  <script>
+    document.addEventListener('click', function(e) {
+      var el = e.target.closest('[href*="play.google.com/store/apps/details"]');
+      if (el) {
+        gtag('event', 'play_store_click', {
+          event_category: 'outbound',
+          event_label: el.getAttribute('href') || '',
+          transport_type: 'beacon'
+        });
+      }
+    });
+  </script>
 
   <footer class="site">
     <div class="wrap">

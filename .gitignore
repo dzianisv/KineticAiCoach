@@ -34,3 +34,8 @@ firebase-debug.log
 
 # Agent working artifacts (screenshots, scratch)
 .agent-artifacts/
+
+# Agent bookkeeping — supervisor state, thought ledgers, radio sessions
+.supervisor/
+thoughts/
+.radios.txt
