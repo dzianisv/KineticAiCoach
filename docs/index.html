@@ -10,6 +10,16 @@
   <meta property="og:description" content="AI personal trainer: rep counter, form correction, live pose feedback." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="play-store/feature-graphic.png" />
+  <!-- Google Analytics 4 — set GA_MEASUREMENT_ID in .env or CI secret
+       Get your ID:  scripts/setup-web-analytics.sh  creates the Web data stream
+       in Firebase Console and prints it. Then set as GA_MEASUREMENT_ID env. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-MEASUREMENT_ID', { anonymize_ip: true });
+  </script>
   <style>
     :root {
       --bg: #0e1116;
@@ -343,5 +353,18 @@
       <div class="copy">&copy; 2026 VIBE TECHNOLOGIES LLC</div>
     </div>
   </footer>
+
+  <!-- Play Store click tracking for conversion analytics -->
+  <script>
+    document.querySelectorAll('a[href*="play.google.com/store/apps/details"]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        gtag('event', 'play_store_click', {
+          'event_category': 'conversion',
+          'event_label': 'landing_page_cta',
+          'transport_type': 'beacon'
+        });
+      });
+    });
+  </script>
 </body>
 </html>
