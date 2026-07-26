@@ -34,3 +34,6 @@ firebase-debug.log
 
 # Agent working artifacts (screenshots, scratch)
 .agent-artifacts/
+.supervisor/
+.radios.txt
+thoughts/
