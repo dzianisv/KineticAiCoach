@@ -4,7 +4,7 @@
 
 **Rationale:** The landing page (`https://dzianisv.github.io/KineticAiCoach/`) is the primary entry point from HN, Product Hunt, Reddit, and social links. It had no sitemap.xml, robots.txt, canonical URL, Twitter Card meta tags, or JSON-LD structured data — meaning Google, Twitter, and other crawlers were not being given proper indexing signals or rich snippet opportunities.
 
-**Status:** Shipped
+**Status:** Shipped. PR #14 — live verification pending GitHub Pages deploy.
 
 **Acceptance criteria:**
 - [x] `sitemap.xml` lists both landing page and privacy policy with proper `lastmod`/`changefreq`/`priority`
