@@ -9,7 +9,7 @@
 
 Without this data, every landing page improvement is an unmeasurable guess, and the $10k MRR path cannot be debugged at the top of the funnel. This is the measurement gap that gates all acquisition optimization — adding analytics is the prerequisite before any ad spend, SEO iteration, or conversion rate optimization.
 
-**Status:** Committed + pushed to `feat/landing-page-analytics`, PR open. Ready for review + merge + GA4 measurement ID finalization.
+**Status:** Committed + pushed + PR #12 open on `feat/landing-page-analytics`. Ready for review + merge + GA4 measurement ID finalization.
 
 **Acceptance criteria:**
 - [x] Google Analytics 4 gtag.js snippet added to `docs/index.html` before `<style>` block
