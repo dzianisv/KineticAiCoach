@@ -284,9 +284,36 @@ function deriveEntitlementV1(sub, nowMillis = Date.now()) {
  *
  * Returns: { verified, state, expiryTimeMillis, productId }
  *
- * Deployment note: do NOT deploy this function as part of this change; deploy is
- * explicitly out of scope. Deploy later with (per repo convention):
- *   gcloud functions deploy verifySubscription --source functions ...
+ * Deployment: ALWAYS deploy this function with the Firebase CLI:
+ *
+ *   firebase deploy --only functions:verifySubscription
+ *
+ * Do NOT deploy it with raw `gcloud functions deploy`. This is a *callable*
+ * (`functions.https.onCall`), not an `onRequest` HTTP endpoint, and the two have
+ * different invoker requirements:
+ *
+ *   - A callable authenticates the user itself, inside the function body, from
+ *     the Firebase ID token the client SDK puts in the request. For the client
+ *     SDK to ever reach that code, the underlying Cloud Run/Functions service
+ *     must allow public invocation (`allUsers` -> roles/cloudfunctions.invoker).
+ *     `firebase deploy` wires that binding up automatically for onCall targets.
+ *   - `gcloud functions deploy` does NOT. Without an explicit
+ *     `--allow-unauthenticated` it leaves the IAM policy empty, so every call
+ *     from the Android client is rejected at the platform edge with HTTP 403
+ *     before the function ever runs — and the function can be left in an
+ *     OFFLINE state that reports no errors in the app.
+ *
+ * This exact failure took verifySubscription offline in production (deployed via
+ * `gcloud`, empty IAM policy, 403 on every call) while `geminiProxy` — an
+ * onRequest function deployed with `--allow-unauthenticated` — kept working.
+ *
+ * `firebase deploy` also honours the packaging rules in firebase.json and sets
+ * the Firebase runtime env (FIREBASE_CONFIG) the Admin SDK expects. Use it.
+ *
+ * Note: function deploys are currently 100% manual — there is no CI/CD workflow
+ * that deploys Cloud Functions. Verify after deploying:
+ *   gcloud functions describe verifySubscription --region=us-central1 \
+ *     --project=kinetic-ai-coach-50627   # expect status: ACTIVE
  */
 exports.verifySubscription = functions.https.onCall(async (data, context) => {
   // Auth gate (outside try so unauthenticated maps cleanly to 401, not "internal").
