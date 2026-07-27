@@ -134,17 +134,21 @@ val verifyReleaseSecrets =
     group = "verification"
     description =
       "Fails the build when FIREBASE_PROXY_URL is empty or is still the .env.example placeholder."
+    // Copy into locals so the doLast action captures plain Strings, not a
+    // reference to this build script (which the configuration cache rejects).
+    val proxyUrl = resolvedFirebaseProxyUrl
+    val marker = placeholderProxyMarker
     doLast {
-      if (resolvedFirebaseProxyUrl.isEmpty()) {
+      if (proxyUrl.isEmpty()) {
         throw GradleException(
           "FIREBASE_PROXY_URL is empty. The release build would ship with no AI backend. " +
             "Create a `.env` at the repo root with FIREBASE_PROXY_URL=<your Cloud Function base URL> " +
             "(value lives in Bitwarden, collection 'dev'). In CI, set the FIREBASE_PROXY_URL repo secret."
         )
       }
-      if (resolvedFirebaseProxyUrl.contains(placeholderProxyMarker)) {
+      if (proxyUrl.contains(marker)) {
         throw GradleException(
-          "FIREBASE_PROXY_URL still contains the '$placeholderProxyMarker' placeholder from .env.example. " +
+          "FIREBASE_PROXY_URL still contains the '$marker' placeholder from .env.example. " +
             "Shipping this produces an app with NO working AI (GeminiApiClient.proxyService would be null). " +
             "Provide the real Cloud Function base URL via `.env` locally or the FIREBASE_PROXY_URL repo secret in CI."
         )
