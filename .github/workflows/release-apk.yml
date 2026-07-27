@@ -53,6 +53,32 @@ jobs:
           fi
           echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
 
+      # Without this, the Secrets Gradle Plugin falls back to `.env.example` and
+      # bakes `https://us-central1-your-project-id.cloudfunctions.net/` into
+      # BuildConfig.FIREBASE_PROXY_URL — GeminiApiClient.proxyService becomes null
+      # and the shipped app has no working AI. This is exactly how v1.0.1 shipped.
+      - name: Provision .env (Firebase proxy URL)
+        env:
+          FIREBASE_PROXY_URL: ${{ secrets.FIREBASE_PROXY_URL }}
+        run: |
+          if [ -z "$FIREBASE_PROXY_URL" ]; then
+            echo "::error::FIREBASE_PROXY_URL secret is not set — the build would ship the .env.example placeholder and every AI feature would be dead."
+            exit 1
+          fi
+          case "$FIREBASE_PROXY_URL" in
+            *your-project-id*)
+              echo "::error::FIREBASE_PROXY_URL secret still contains the 'your-project-id' placeholder."
+              exit 1
+              ;;
+          esac
+          # GEMINI_API_KEY intentionally stays a placeholder: the app must always
+          # route through the authenticated proxy, never embed a raw key.
+          {
+            echo "GEMINI_API_KEY=MY_GEMINI_API_KEY"
+            echo "FIREBASE_PROXY_URL=$FIREBASE_PROXY_URL"
+          } > .env
+          echo "Wrote .env (value not echoed)."
+
       - name: Build signed release APK
         env:
           # Wired to app/build.gradle.kts release signingConfig (env-var fallback).
@@ -79,6 +105,45 @@ jobs:
           APK="${{ steps.apk.outputs.path }}"
           BT=$(ls "$ANDROID_HOME"/build-tools/ | sort -V | tail -1)
           "$ANDROID_HOME/build-tools/$BT/apksigner" verify --verbose "$APK"
+
+      # Fixing the build inputs is not enough — assert against the actual bytes
+      # we are about to publish. Anything that reintroduces a placeholder (a
+      # dropped secret, a reverted gradle guard, a bad merge) fails here.
+      - name: Verify built APK carries real config (no placeholders)
+        run: |
+          set -euo pipefail
+          APK="${{ steps.apk.outputs.path }}"
+          SCAN="$RUNNER_TEMP/apk-scan"
+          rm -rf "$SCAN"; mkdir -p "$SCAN"
+          unzip -o -q "$APK" -d "$SCAN" 'classes*.dex' 'resources.arsc'
+
+          fail=0
+
+          if grep -a -q 'us-central1-your-project-id\.cloudfunctions\.net' "$SCAN"/classes*.dex; then
+            echo "::error::APK contains the placeholder Firebase proxy URL — the shipped app would have NO working AI."
+            fail=1
+          else
+            echo "placeholder proxy URL absent: yes"
+          fi
+
+          if grep -a -Eq 'https://[a-z0-9-]+-[a-z0-9-]+\.cloudfunctions\.net/' "$SCAN"/classes*.dex; then
+            echo "real proxy host present: yes"
+          else
+            echo "::error::APK contains no Firebase Cloud Function proxy URL at all."
+            fail=1
+          fi
+
+          for key in google_app_id gcm_defaultSenderId default_web_client_id; do
+            if grep -a -q "$key" "$SCAN/resources.arsc"; then
+              echo "firebase resource present: $key"
+            else
+              echo "::error::APK is missing the '$key' resource — google-services.json was not applied; Firebase Auth would crash."
+              fail=1
+            fi
+          done
+
+          rm -rf "$SCAN"
+          exit "$fail"
 
       - name: Upload APK to the release
         env:

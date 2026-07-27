@@ -98,7 +98,74 @@ secrets {
   defaultPropertiesFileName = ".env.example"
 }
 
-googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
+// ---------------------------------------------------------------------------
+// Release config guard — DO NOT REMOVE.
+//
+// The Secrets Gradle Plugin silently falls back to `.env.example` for any key
+// missing from `.env`. `.env.example` ships
+// `FIREBASE_PROXY_URL=https://us-central1-your-project-id.cloudfunctions.net/`,
+// so a build without a real `.env` bakes that placeholder into
+// `BuildConfig.FIREBASE_PROXY_URL`. `GeminiApiClient.proxyService` then
+// evaluates to null (app/src/main/java/com/example/network/GeminiApiClient.kt),
+// `analyzeFrame()` returns null, and the shipped app has NO working AI at all —
+// no rep counting, no form feedback — while the build stays green.
+//
+// This happened for real: the v1.0.1 APK attached to the GitHub release by
+// `.github/workflows/release-apk.yml` contained the placeholder URL. Fail the
+// build instead of shipping a silently dead app.
+// ---------------------------------------------------------------------------
+val placeholderProxyMarker = "your-project-id"
+
+val resolvedFirebaseProxyUrl: String =
+  listOf(rootProject.file(".env"), rootProject.file(".env.example"))
+    .asSequence()
+    .filter { it.exists() }
+    .mapNotNull { candidate ->
+      Properties()
+        .apply { FileInputStream(candidate).use { load(it) } }
+        .getProperty("FIREBASE_PROXY_URL")
+    }
+    .firstOrNull()
+    ?.trim()
+    .orEmpty()
+
+val verifyReleaseSecrets =
+  tasks.register("verifyReleaseSecrets") {
+    group = "verification"
+    description =
+      "Fails the build when FIREBASE_PROXY_URL is empty or is still the .env.example placeholder."
+    doLast {
+      if (resolvedFirebaseProxyUrl.isEmpty()) {
+        throw GradleException(
+          "FIREBASE_PROXY_URL is empty. The release build would ship with no AI backend. " +
+            "Create a `.env` at the repo root with FIREBASE_PROXY_URL=<your Cloud Function base URL> " +
+            "(value lives in Bitwarden, collection 'dev'). In CI, set the FIREBASE_PROXY_URL repo secret."
+        )
+      }
+      if (resolvedFirebaseProxyUrl.contains(placeholderProxyMarker)) {
+        throw GradleException(
+          "FIREBASE_PROXY_URL still contains the '$placeholderProxyMarker' placeholder from .env.example. " +
+            "Shipping this produces an app with NO working AI (GeminiApiClient.proxyService would be null). " +
+            "Provide the real Cloud Function base URL via `.env` locally or the FIREBASE_PROXY_URL repo secret in CI."
+        )
+      }
+    }
+  }
+
+// `preReleaseBuild` is AGP's lifecycle anchor for the release variant, so this
+// fails fast — before compiling — for assembleRelease / bundleRelease / any
+// other release-variant task.
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verifyReleaseSecrets) }
+
+// Belt-and-braces: keep the guard attached even if AGP renames the anchor.
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+  dependsOn(verifyReleaseSecrets)
+}
+
+// ERROR (not WARN): a release build with no `app/google-services.json` silently
+// drops google_app_id / default_web_client_id, which breaks Firebase Auth at
+// runtime. Never let that pass as a warning.
+googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.ERROR }
 
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
