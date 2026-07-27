@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background: solid black square with soft rounded corners, matching the app's black theme -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#000000"/>
+
+  <!-- Pose-tracker skeleton mark (white), echoing the in-app red bones overlay -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <!-- neck -->
+    <line x1="256" y1="196" x2="256" y2="230"/>
+    <!-- shoulder bar -->
+    <line x1="208" y1="230" x2="304" y2="230"/>
+    <!-- left arm -->
+    <polyline points="208,230 182,268 170,306"/>
+    <!-- right arm -->
+    <polyline points="304,230 330,268 342,306"/>
+    <!-- spine -->
+    <line x1="256" y1="230" x2="256" y2="338"/>
+    <!-- hip bar -->
+    <line x1="226" y1="338" x2="286" y2="338"/>
+    <!-- left leg -->
+    <polyline points="226,338 220,400 214,460"/>
+    <!-- right leg -->
+    <polyline points="286,338 292,400 298,460"/>
+  </g>
+
+  <!-- head -->
+  <circle cx="256" cy="158" r="38" fill="#FFFFFF"/>
+
+  <!-- joints -->
+  <g fill="#FFFFFF">
+    <circle cx="208" cy="230" r="9"/>
+    <circle cx="304" cy="230" r="9"/>
+    <circle cx="182" cy="268" r="8"/>
+    <circle cx="330" cy="268" r="8"/>
+    <circle cx="170" cy="306" r="9"/>
+    <circle cx="342" cy="306" r="9"/>
+    <circle cx="226" cy="338" r="9"/>
+    <circle cx="286" cy="338" r="9"/>
+    <circle cx="220" cy="400" r="8"/>
+    <circle cx="292" cy="400" r="8"/>
+    <circle cx="214" cy="460" r="9"/>
+    <circle cx="298" cy="460" r="9"/>
+  </g>
+</svg>
