@@ -57,6 +57,12 @@ class BillingManager(
     /** Offer token to use when launching the flow, keyed by base plan id. */
     private val offerTokensByBasePlan = mutableMapOf<String, String>()
 
+    /** Set by [launchPurchaseFlow] to trace the paywall entry point through purchase analytics events. */
+    private var currentPaywallSource: String = ""
+
+    /** Set by [launchPurchaseFlow] to trace which base plan (monthly/yearly) was chosen. */
+    private var currentPaywallBasePlanId: String = "unknown"
+
     /** Firebase Callable client for best-effort server-side purchase verification. */
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance()
 
@@ -189,7 +195,9 @@ class BillingManager(
      * ("monthly" or "yearly"). No-op with a Log.w if productDetails/offer aren't
      * loaded yet or the client isn't connected.
      */
-    fun launchPurchaseFlow(activity: Activity, basePlanId: String) {
+    fun launchPurchaseFlow(activity: Activity, basePlanId: String, paywallSource: String = "") {
+        currentPaywallSource = paywallSource
+        currentPaywallBasePlanId = basePlanId
         val details = productDetails
         val offerToken = offerTokensByBasePlan[basePlanId]
         if (details == null || offerToken == null) {
@@ -221,11 +229,12 @@ class BillingManager(
                 purchases?.forEach { handlePurchase(it) }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
-                Analytics.logPurchaseFailed("user_canceled")
+                Analytics.logPurchaseFailed("user_canceled", currentPaywallSource)
             }
             else -> {
                 Analytics.logPurchaseFailed(
-                    billingResult.debugMessage.ifBlank { "error_${billingResult.responseCode}" }
+                    billingResult.debugMessage.ifBlank { "error_${billingResult.responseCode}" },
+                    currentPaywallSource
                 )
             }
         }
@@ -255,7 +264,7 @@ class BillingManager(
                 if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     _isPro.value = true
                     verifyPurchaseServerSide(purchase)
-                    Analytics.logPurchaseCompleted(resolveBasePlanId(purchase))
+                    Analytics.logPurchaseCompleted(resolveBasePlanId(purchase), currentPaywallSource)
                 } else {
                     Log.w(TAG, "acknowledgePurchase failed: ${ackResult.responseCode} ${ackResult.debugMessage}")
                 }
@@ -268,10 +277,13 @@ class BillingManager(
     }
 
     /**
-     * The [Purchase] object does not expose the base plan id directly, so this is
-     * "unknown" unless it becomes resolvable in a future API.
+     * Returns the base plan id from the last [launchPurchaseFlow] call, since the
+     * [Purchase] object does not expose it directly. This correctly covers the
+     * sequential single-purchase-flow case (monthly → year toggle would re-launch
+     * before the previous completes, overwriting the stored value — acceptable for
+     * analytics accuracy given Play Billing's single-flow constraint).
      */
-    private fun resolveBasePlanId(purchase: Purchase): String = "unknown"
+    private fun resolveBasePlanId(purchase: Purchase): String = currentPaywallBasePlanId
 
     /**
      * Fire-and-forget, best-effort server-side verification of a purchase via the

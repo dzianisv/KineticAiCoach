@@ -1,12 +1,86 @@
 rules_version = '2';
 
-// KineticAiCoach Firestore security rules.
-// All app data lives under users/{uid}/** (workoutSessions, program, classes, messages).
-// Each authenticated user (Google or anonymous) may read/write only their own subtree.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && (!("name" in request.resource.data) || request.resource.data.name is string || request.resource.data.name == null)
+        && (!("email" in request.resource.data) || request.resource.data.email is string || request.resource.data.email == null)
+        && (!("goals" in request.resource.data) || request.resource.data.goals is string || request.resource.data.goals == null)
+        && (!("height" in request.resource.data) || request.resource.data.height is number || request.resource.data.height == null)
+        && (!("weight" in request.resource.data) || request.resource.data.weight is number || request.resource.data.weight == null)
+        && (!("weeklyGoalDays" in request.resource.data) || request.resource.data.weeklyGoalDays is number || request.resource.data.weeklyGoalDays == null)
+        && (!("experiencePoints" in request.resource.data) || request.resource.data.experiencePoints is number || request.resource.data.experiencePoints == null)
+        && (!("streakDays" in request.resource.data) || request.resource.data.streakDays is number || request.resource.data.streakDays == null)
+        && (!("lastWorkoutDate" in request.resource.data) || request.resource.data.lastWorkoutDate is number || request.resource.data.lastWorkoutDate == null)
+        && (!("workoutProgram" in request.resource.data) || request.resource.data.workoutProgram is string || request.resource.data.workoutProgram == null)
+        && (!("trialStartedAt" in request.resource.data) || request.resource.data.trialStartedAt is number || request.resource.data.trialStartedAt == null);
+
+      allow update: if isOwner(uid)
+        && (!("name" in request.resource.data) || request.resource.data.name is string)
+        && (!("email" in request.resource.data) || request.resource.data.email is string)
+        && (!("goals" in request.resource.data) || request.resource.data.goals is string)
+        && (!("height" in request.resource.data) || request.resource.data.height is number)
+        && (!("weight" in request.resource.data) || request.resource.data.weight is number)
+        && (!("weeklyGoalDays" in request.resource.data) || request.resource.data.weeklyGoalDays is number)
+        && (!("experiencePoints" in request.resource.data) || request.resource.data.experiencePoints is number)
+        && (!("streakDays" in request.resource.data) || request.resource.data.streakDays is number)
+        && (!("lastWorkoutDate" in request.resource.data) || request.resource.data.lastWorkoutDate is number || request.resource.data.lastWorkoutDate == null)
+        && (!("workoutProgram" in request.resource.data) || request.resource.data.workoutProgram is string)
+        && (!("trialStartedAt" in request.resource.data) || request.resource.data.trialStartedAt is number);
+
+      allow delete: if false;
+
+      match /workoutSessions/{sessionId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.exerciseName is string
+          && request.resource.data.durationSeconds is number
+          && request.resource.data.reps is number
+          && request.resource.data.formScore is number
+          && request.resource.data.pointsEarned is number
+          && request.resource.data.feedback is string
+          && request.resource.data.timestamp is number;
+        allow update: if isOwner(uid);
+        allow delete: if false;
+      }
+
+      match /program/{docId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.exercises is list;
+        allow update: if isOwner(uid);
+        allow delete: if false;
+      }
+
+      match /classes/{classId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.startedAt is number
+          && request.resource.data.completedAt is number
+          && request.resource.data.exerciseCount is number
+          && request.resource.data.totalReps is number
+          && request.resource.data.avgFormScore is number
+          && request.resource.data.totalPoints is number;
+        allow update: if isOwner(uid);
+        allow delete: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.role is string
+          && request.resource.data.content is string
+          && request.resource.data.timestamp is number;
+        allow update: if isOwner(uid);
+        allow delete: if false;
+      }
     }
   }
 }
