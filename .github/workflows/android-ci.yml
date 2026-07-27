@@ -1,0 +1,114 @@
+name: android-ci
+
+# Minimal proof that the Android app actually compiles and its unit tests pass.
+# Neither existed before: the release APK workflow only ran on a published
+# release, so a broken release variant (e.g. a missing `.env` baking the
+# `your-project-id` placeholder into BuildConfig.FIREBASE_PROXY_URL) reached the
+# Play Store / GitHub release without a single CI signal.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: assembleRelease + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Provision google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64 secret is not set — the build needs it (default_web_client_id)."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
+
+      - name: Provision .env (Firebase proxy URL)
+        env:
+          FIREBASE_PROXY_URL: ${{ secrets.FIREBASE_PROXY_URL }}
+        run: |
+          if [ -z "$FIREBASE_PROXY_URL" ]; then
+            echo "::error::FIREBASE_PROXY_URL secret is not set — the release variant would ship the .env.example placeholder."
+            exit 1
+          fi
+          case "$FIREBASE_PROXY_URL" in
+            *your-project-id*)
+              echo "::error::FIREBASE_PROXY_URL secret still contains the 'your-project-id' placeholder."
+              exit 1
+              ;;
+          esac
+          {
+            echo "GEMINI_API_KEY=MY_GEMINI_API_KEY"
+            echo "FIREBASE_PROXY_URL=$FIREBASE_PROXY_URL"
+          } > .env
+          echo "Wrote .env (value not echoed)."
+
+      # No keystore secrets here on purpose: app/build.gradle.kts leaves the
+      # release build type unsigned when they are absent, so R8/shrinking is
+      # still exercised without handing signing material to every PR run.
+      - name: assembleRelease + testDebugUnitTest
+        run: ./gradlew --no-daemon :app:assembleRelease :app:testDebugUnitTest
+
+      - name: Verify release APK carries real config (no placeholders)
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::No release APK produced."
+            exit 1
+          fi
+          SCAN="$RUNNER_TEMP/apk-scan"
+          rm -rf "$SCAN"; mkdir -p "$SCAN"
+          unzip -o -q "$APK" -d "$SCAN" 'classes*.dex' 'resources.arsc'
+
+          fail=0
+          if grep -a -q 'us-central1-your-project-id\.cloudfunctions\.net' "$SCAN"/classes*.dex; then
+            echo "::error::APK contains the placeholder Firebase proxy URL."
+            fail=1
+          else
+            echo "placeholder proxy URL absent: yes"
+          fi
+          if grep -a -Eq 'https://[a-z0-9-]+-[a-z0-9-]+\.cloudfunctions\.net/' "$SCAN"/classes*.dex; then
+            echo "real proxy host present: yes"
+          else
+            echo "::error::APK contains no Firebase Cloud Function proxy URL at all."
+            fail=1
+          fi
+          for key in google_app_id gcm_defaultSenderId default_web_client_id; do
+            if grep -a -q "$key" "$SCAN/resources.arsc"; then
+              echo "firebase resource present: $key"
+            else
+              echo "::error::APK is missing the '$key' resource."
+              fail=1
+            fi
+          done
+
+          rm -rf "$SCAN"
+          exit "$fail"
+
+      - name: Upload unit test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
