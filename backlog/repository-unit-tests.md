@@ -19,3 +19,13 @@ injected `clockMillis` lambda for deterministic epoch-day streak tests — no Ro
 suite and removed. Verified green on 2026-07-23 via
 `GRADLE_USER_HOME=.scratch/gradle-home ./gradlew :app:testDebugUnitTest` → **BUILD SUCCESSFUL**,
 `FitRepositoryTest` reporting `tests="27" skipped="0" failures="0" errors="0"`.
+
+**Caveat — no CI safety net:** These tests are NOT run by any CI workflow on `main` today. An
+Android CI workflow was proposed in PR #13 (`chore/android-ci`, `.github/workflows/android-ci.yml`)
+but was **closed without merging**; its one and only CI run (`android-ci` check) **failed**
+(`gh run list --branch chore/android-ci` → conclusion `failure`,
+https://github.com/dzianisv/KineticAiCoach/actions/runs/30189593539). Grepping
+`.github/workflows/*.yml` on `main` for `gradlew ... test` confirms no workflow invokes the
+Gradle test task. Until an Android CI workflow is added and passing, this suite only protects
+local/manual runs — a regression in `addWorkoutSession`, streak math, or badge logic would not be
+caught automatically before merge.
