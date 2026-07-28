@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.analytics.Analytics
 import com.example.billing.BillingConfig
 import com.example.billing.BillingManager
+import com.example.billing.DataStoreTrialLocalStore
 import com.example.billing.TrialManager
 import com.example.config.RemoteConfigManager
 import com.example.data.AppDatabase
@@ -62,7 +63,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val database = AppDatabase.getDatabase(application)
     private val repository = FitRepository(database)
     private val billingManager = BillingManager(application, viewModelScope)
-    private val trialManager = TrialManager(application, viewModelScope)
+    private val trialManager = TrialManager(viewModelScope, DataStoreTrialLocalStore(application))
     private val remoteConfigManager = RemoteConfigManager(application, viewModelScope)
 
     // Flows from database
