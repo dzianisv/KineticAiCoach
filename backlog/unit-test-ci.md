@@ -24,7 +24,7 @@ These new tests run automatically under the existing `android-ci.yml` job — no
 - [x] JDK 17 (temurin) via `setup-java`; Gradle caching via `gradle/actions/setup-gradle` — via existing `android-ci.yml`
 - [x] `google-services.json` decoded from `GOOGLE_SERVICES_JSON_BASE64` before the Gradle run — via existing `android-ci.yml`
 - [x] Test report uploaded as artifact on failure — via existing `android-ci.yml`
-- [ ] CI run on this PR confirmed green (pending — see PR for the Actions run link)
+- [x] CI run on this PR confirmed green: `assembleRelease + unit tests` passed in 4m40s — https://github.com/dzianisv/KineticAiCoach/actions/runs/30317875969/job/90147354269
 
 **Evidence:**
 - Local verification: `ANDROID_HOME=<sdk> GRADLE_USER_HOME=<home> ./gradlew --no-daemon :app:testDebugUnitTest` → **BUILD SUCCESSFUL**, 47 tests / 0 failures / 0 errors across all 5 suites (2026-07-27).
