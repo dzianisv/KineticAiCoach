@@ -281,11 +281,17 @@ fun TodaysClassScreen(
         var lastSpokenCritique = ""
         var lastCritiqueSpokenAt = 0L
         var wasSetComplete = false
+        val loopStartMs = System.currentTimeMillis()
+        Log.i("MontageTiming", "[$name] LaunchedEffect started at t=0 (loopStartMs=$loopStartMs)")
         while (isClassActive) {
             val batch = drainFrames(frameRing)
             if (batch.isEmpty()) { delay(300); continue }
+            val batchReadyMs = System.currentTimeMillis()
+            Log.i("MontageTiming", "[$name] batch ready at t=+${batchReadyMs - loopStartMs}ms (size=${batch.size})")
             val montage = buildMontage(sampleEvenly(batch, MONTAGE_COLS * MONTAGE_ROWS))
             val imageBase64 = bitmapToBase64(montage, 70)
+            val callStartMs = System.currentTimeMillis()
+            Log.i("MontageTiming", "[$name] analyzeFrame() call starting at t=+${callStartMs - loopStartMs}ms")
             isAnalyzing = true
             val raw = withContext(Dispatchers.IO) {
                 RetrofitClient.analyzeFrame(
@@ -294,6 +300,8 @@ fun TodaysClassScreen(
                     systemPrompt = systemPrompt
                 )
             }
+            val callEndMs = System.currentTimeMillis()
+            Log.i("MontageTiming", "[$name] analyzeFrame() returned at t=+${callEndMs - loopStartMs}ms (call took ${callEndMs - callStartMs}ms, result null=${raw == null})")
             isAnalyzing = false
             val json = raw?.let { parseAnalysis(it) }
             if (json != null) {

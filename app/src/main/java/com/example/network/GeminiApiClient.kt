@@ -131,6 +131,7 @@ object RetrofitClient {
             return null
         }
         val user = FirebaseAuth.getInstance().currentUser
+        val tokenFetchStartMs = System.currentTimeMillis()
         val idToken = user?.let {
             try {
                 Tasks.await(it.getIdToken(false)).token
@@ -139,8 +140,10 @@ object RetrofitClient {
                 null
             }
         } ?: return null
+        Log.i("MontageTiming", "getIdToken() took ${System.currentTimeMillis() - tokenFetchStartMs}ms")
 
         return try {
+            val httpCallStartMs = System.currentTimeMillis()
             val response = proxy.callProxy(
                 authHeader = "Bearer $idToken",
                 request = FirebaseProxyRequest(
@@ -151,9 +154,10 @@ object RetrofitClient {
                     responseMimeType = responseMimeType
                 )
             )
+            Log.i("MontageTiming", "proxy.callProxy() HTTP call took ${System.currentTimeMillis() - httpCallStartMs}ms")
             response.text
         } catch (e: Exception) {
-            Log.e("GeminiApiClient", "Frame analysis proxy call failed", e)
+            Log.e("GeminiApiClient", "Frame analysis proxy call failed after ${System.currentTimeMillis() - tokenFetchStartMs}ms total (exception=${e.javaClass.simpleName})", e)
             null
         }
     }
